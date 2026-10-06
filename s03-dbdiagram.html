@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h1>Un modèle graphique de base de donnée</h1>
+
+    <div style="float: left;">
+    <p>Cet exemple a été fait avec dbdiagram.io</p>
+    <div>
+        <iframe width="800" height="560" src='https://dbdiagram.io/e/5d9b3627ff5115114db4fb9c/6ac4dc96abcc87fb7a064800'> </iframe>
+    </div>
+    </div>
+
+    <div>
+    <h3>Le code pour générer ce dbdiagram est ici</h3>
+    <pre>
+        <code>
+    //Imaginez le "modèle de données" idéal de votre sujet
+
+    // Un tableau, décrit un domaine
+    Table personnes {
+
+    // propriétés
+    nom_complet varchar
+    age int
+    adresse float
+    photo blob
+    parent varchar
+    mascotte varchar
+    }
+
+    Table animaux {
+    nom varchar
+    couleur varchar
+    espece varchar
+    poids int
+    taille int
+    }
+
+    // Ce tableau a été fait à partir de notre requête wikidata, voir s02
+    Table cinemas {
+    movie_theater varchar(255)
+    movie_theaterLabel text
+    street_address text
+    coordinate_location text
+    }
+
+
+    Ref:personnes.mascotte > animaux.nom
+
+    Ref:personnes.adresse > cinemas.coordinate_location
+
+        </code>
+    </pre>
+    </div>
+</body>
+</html>
