@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Transformez les colonnes d’une requête SPARQL Wikidata en schéma MySQL ou DBML. Un outil pédagogique pour préparer vos diagrammes de base de données.">
+  <meta name="theme-color" content="#123c42">
+  <title>Atelier SPARQL — MySQL, DBML, tableau & CSV</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23123c42'/%3E%3Cpath d='M11 8H7v16h4m10-16h4v16h-4M14 12h4m-4 4h4m-4 4h4' fill='none' stroke='%23d9f27c' stroke-width='2.5'/%3E%3C/svg%3E">
+<style>
+:root{color-scheme:light;--ink:#15383e;--muted:#586d72;--green:#d9f27c;--paper:#f4f7f7;--line:#dbe4e5;--dark:#123c42;--error:#a32836;font-family:Inter,"Segoe UI",Arial,sans-serif;font-size:16px}
+*{box-sizing:border-box}body{margin:0;color:var(--ink);background:var(--paper);line-height:1.5}button,input,select,textarea{font:inherit}button,a,input,select,textarea,summary{touch-action:manipulation}button{cursor:pointer}a{color:#206b76;text-underline-offset:3px}a:hover{color:#123c42}button:disabled{cursor:not-allowed;opacity:.5}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible,[tabindex]:focus-visible{outline:3px solid #66a7b3;outline-offset:3px}input,select{min-height:42px;border:1px solid #c6d3d5;border-radius:7px;background:white;color:var(--ink);padding:7px 10px}input:hover,select:hover{border-color:#75999d}select{cursor:pointer}fieldset{padding:0;margin:0;border:0;min-width:0}[hidden]{display:none!important}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.skip-link{position:absolute;z-index:5;left:20px;top:-70px;background:var(--green);padding:10px 16px;border-radius:6px}.skip-link:focus{top:12px}.site-header{max-width:1320px;margin:auto;padding:23px 32px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);gap:20px}.brand{display:flex;align-items:center;gap:12px;font-size:22px;letter-spacing:-.5px;font-weight:500}.brand-mark{display:flex;align-items:center;justify-content:center;width:38px;height:38px;background:var(--dark);border-radius:9px;color:var(--green);font-family:monospace;font-size:25px;letter-spacing:-3px;padding-right:3px}.brand-mark i{font-style:normal;font-size:19px;margin:0 3px}.header-meta{color:var(--muted);font-size:14px;white-space:nowrap}.header-meta span{margin:0 10px;color:#a3b4b7}main{max-width:1320px;margin:auto;padding:28px 32px 36px}.intro{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:26px}.eyebrow{font-size:12px;letter-spacing:1.4px;font-weight:700;color:#42727a;margin:0 0 6px}h1{font-size:30px;line-height:1.2;font-weight:650;letter-spacing:-.8px;margin:0 0 9px}.intro p:not(.eyebrow){margin:0;color:var(--muted);font-size:16px}.local-note{color:var(--muted);font-size:14px;line-height:1.6;flex-shrink:0;padding-left:20px;border-left:1px solid var(--line)}.local-note>span{font-family:monospace;font-size:17px;margin-right:5px}.local-note small{font-size:13px;margin-left:22px}.workspace{display:grid;grid-template-columns:1fr 1fr;gap:20px}.panel{background:white;border:1px solid var(--line);border-radius:13px;overflow:hidden;min-width:0;box-shadow:0 3px 8px #123c4203}.panel-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px 20px;border-bottom:1px solid var(--line)}h2{font-size:17px;letter-spacing:-.2px;line-height:1.4;margin:0;font-weight:650;display:flex;align-items:center;gap:10px}.step{font-size:12px;letter-spacing:.2px;color:#5a7c80;border:1px solid #d9e5e5;border-radius:5px;min-width:26px;height:25px;display:inline-flex;align-items:center;justify-content:center;font-weight:650}.language-label{font-size:12px;color:var(--muted);font-family:monospace;letter-spacing:1px}.source-toolbar{padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fbfcfc}.source-toolbar label{font-size:14px;color:var(--muted)}.source-toolbar select{max-width:230px;min-height:35px;font-size:14px;padding:5px 10px}textarea{display:block;width:100%;height:276px;resize:vertical;min-height:200px;max-height:800px;padding:20px;border:0;border-top:1px solid #e8eeee;border-bottom:1px solid var(--line);border-radius:0;background:#fcfdfd;color:#254c55;font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace;font-size:14px;line-height:1.7;tab-size:2}textarea:focus-visible{outline-offset:-3px}textarea[aria-invalid=true]{background:#fff7f8}.source-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:15px 20px}.button{font-size:14px;line-height:1.4;font-weight:600;padding:10px 14px;border:1px solid transparent;border-radius:7px;min-height:42px;transition:background .12s,transform .12s}.button:active{transform:translateY(1px)}.primary{background:var(--green);color:#233c28;border-color:#d1e476}.primary:hover{background:#cde969}.source-actions>span{font-size:12px;color:var(--muted)}.source-actions a{font-size:13px;flex-basis:100%;margin-top:1px;width:fit-content}.count-badge{border:1px solid #d9e5e5;background:#f4f9f8;color:#40716f;padding:3px 8px;font-size:12px;border-radius:5px}.output-toolbar{background:var(--dark);display:flex;align-items:center;justify-content:space-between;padding:13px 18px;color:#c0d5d7;border-bottom:1px solid #ffffff12}.tabs{display:flex;background:#0b2c32;border:1px solid #456268;border-radius:7px;padding:3px;gap:3px}.tabs button{border:0;border-radius:4px;background:transparent;padding:5px 14px;color:#c1d3d5;font-size:14px;min-height:32px}.tabs button[aria-selected=true]{background:var(--green);color:#173237;font-weight:650}.output-toolbar>span{font-size:13px;font-family:monospace}.code-panel{background:var(--dark);color:#e2eeec;min-height:276px;overflow:auto;padding:24px 20px;position:relative}.code-panel pre{margin:0;white-space:pre;line-height:1.8;font-size:14px;font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace}.code-panel code{font:inherit}#output-placeholder{color:#c3d7d9;font-size:15px;line-height:1.7;display:block;white-space:normal}.result-actions{display:flex;flex-wrap:wrap;gap:10px;padding:15px 20px 10px}.secondary{border-color:#c7d6d7;background:white;color:var(--ink)}.secondary:hover{background:#f0f5f5}.dark{background:var(--dark);color:white}.dark:hover{background:#24565b}.format-help{font-size:13px;color:var(--muted);margin:0;padding:0 20px 15px;line-height:1.6}.schema-panel{margin-top:20px}.schema-top{padding:20px;display:flex;justify-content:space-between;align-items:center;gap:25px}.schema-top p{margin:5px 0 0 36px;font-size:14px;color:var(--muted);max-width:590px}.table-name{display:flex;align-items:center;gap:12px;flex-shrink:0}.table-name label{font-size:14px;color:var(--muted)}.table-name input{font-family:monospace;width:185px;font-size:14px}.table-scroll{overflow:auto;border-top:1px solid var(--line)}table{border-collapse:collapse;width:100%;text-align:left;min-width:720px}th{padding:10px 20px;background:#f5f8f8;color:#577278;font-size:13px;font-weight:500;border-bottom:1px solid var(--line)}td{padding:13px 20px;border-bottom:1px solid #e8eeee;vertical-align:middle}tbody tr:last-child td{border-bottom:0}tbody tr:hover{background:#fcfdfd}.variable{font-family:monospace;color:#216d79;font-size:14px;font-weight:600}.reason{display:block;font-size:12px;color:var(--muted);font-weight:400;line-height:1.5;margin-top:4px;font-family:Inter,"Segoe UI",Arial,sans-serif;max-width:370px}.column-name{font-family:monospace;font-size:14px;width:100%;min-width:130px;max-width:240px}.type-select{font-family:monospace;font-size:14px;width:170px}.check-heading{text-align:center}.check-cell{text-align:center;width:130px}.check-cell input{width:18px;height:18px;min-height:18px;accent-color:#245a62;cursor:pointer;display:inline-block;vertical-align:middle;padding:0}.check-cell input:disabled{cursor:not-allowed;opacity:.65}.constraint-note{font-size:13px;color:var(--muted);padding:12px 20px 16px;margin:0;border-top:1px solid var(--line)}.error-box{margin:0 20px 16px;padding:12px 15px;background:#fff3f4;border:1px solid #efd0d4;border-radius:7px;color:var(--error);font-size:14px;line-height:1.6}.notice{margin:0 20px 16px;padding:11px 14px;background:#f7f9e8;border:1px solid #e3e9c7;border-radius:7px;font-size:14px}.warnings{margin:0 20px 18px;padding:13px 16px;background:#f4f8ed;border-left:3px solid #a8c655;border-radius:0 5px 5px 0;font-size:14px;color:#40543c}.warnings h3{font-size:14px;margin:0 0 5px}.warnings ul{margin:0;padding-left:20px}.warnings li+li{margin-top:4px}.explanation{margin-top:24px;padding:19px 22px;background:#e7eff0;border-radius:10px;display:flex;align-items:flex-start;gap:25px}.explanation-tag{font-size:11px;letter-spacing:1px;font-weight:700;white-space:nowrap;padding-top:5px;color:#4b757d}.explanation h2{font-size:16px;letter-spacing:0}.explanation p{font-size:14px;color:#4a6970;margin:5px 0 0}.help{margin-top:17px;font-size:14px;color:var(--muted)}.help summary{cursor:pointer;color:#315e66;padding:8px 0;width:fit-content}.help>div{padding:3px 20px 4px;max-width:950px}.help p{margin:10px 0;line-height:1.8}.help code{font-family:monospace;color:#244d55;background:#e4eded;border-radius:3px;padding:1px 4px}footer{max-width:1320px;margin:auto;padding:20px 32px 27px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted)}footer nav{display:flex;gap:22px}footer a{color:var(--muted)}.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:10;background:#143e44;color:white;box-shadow:0 6px 28px #143e4435;border:1px solid #608287;padding:12px 20px;border-radius:8px;font-size:14px;max-width:calc(100vw - 32px);text-align:center}
+@media(min-width:1200px){.workspace{grid-template-columns:1.02fr 1fr}.source-actions a{flex-basis:auto;margin-left:auto;margin-top:0}.source-actions>span{font-size:12px}.source-actions{gap:8px}.button{padding-left:12px;padding-right:12px}}
+@media(max-width:1000px){.local-note{display:none}.schema-top{align-items:flex-start}.table-name{flex-direction:column;align-items:flex-start;gap:5px}.schema-top p{max-width:410px}.source-toolbar{flex-wrap:wrap}.source-toolbar select{max-width:100%}}
+@media(max-width:760px){.site-header{padding:17px 18px}.brand{font-size:19px}.header-meta{font-size:12px}.header-meta span{margin:0 3px}main{padding:23px 16px 27px}.intro{margin-bottom:20px}h1{font-size:25px}.intro p:not(.eyebrow){font-size:15px}.workspace{grid-template-columns:1fr;gap:16px}.panel-heading{padding:15px 17px}.source-toolbar{padding:12px 17px}textarea{height:260px;padding:17px;font-size:14px}.source-actions{padding:14px 17px}.code-panel{min-height:215px;padding:21px 17px}.result-actions{padding-left:17px}.format-help{padding-left:17px}.schema-panel{margin-top:16px}.schema-top{flex-direction:column;padding:17px;gap:16px}.schema-top p{margin-left:0;max-width:none}.table-name{flex-direction:row;align-items:center;width:100%;gap:12px}.table-name input{flex:1;width:0}.table-scroll{overflow:auto}.explanation{gap:9px;flex-direction:column;padding:16px 17px}.explanation-tag{font-size:12px}.explanation h2{font-size:16px}.explanation p{font-size:14px}.help{font-size:14px}footer{padding:18px 18px 22px;font-size:13px}footer nav{gap:16px;flex-wrap:wrap}.source-actions a{margin-left:auto;flex-basis:auto}.source-actions>span{display:none}.panel h2{font-size:16px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+
+
+/* Additional result views: keep the editable schema table styles separate. */
+.output-toolbar{gap:8px;flex-wrap:wrap}.tabs{max-width:100%}.tabs button{padding:5px 10px}
+.code-panel[data-view="table"]{background:#f8fbfb;color:var(--ink)}
+.code-panel[data-view="table"] #output-placeholder{color:var(--muted)}
+.result-table{min-width:0;width:100%;border-collapse:separate;border-spacing:0;border:1px solid #c9dadd;border-radius:7px;overflow:hidden}
+.result-table caption{text-align:left;font-size:14px;font-weight:600;margin-bottom:12px;color:#38616a;caption-side:top}
+.result-table th{background:#e3eef0;color:#24525d;font-family:monospace;font-size:14px;font-weight:600;white-space:nowrap;min-width:125px;padding:12px 15px;border-bottom:1px solid #c9dadd}
+.result-table td{height:64px;padding:12px 15px;background:white;border-bottom:0}
+.result-table th+th,.result-table td+td{border-left:1px solid #d8e4e6}
+@media(max-width:480px){.output-toolbar{padding-left:14px;padding-right:14px}.tabs{flex:1;justify-content:space-between}.tabs button{padding:5px 7px}#extension-label{display:none}.result-table th{min-width:115px}}
+
+</style>
+</head>
+<body>
+  <a class="skip-link" href="#query">Aller à la requête</a>
+  <header class="site-header">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">[<i>:</i>]</span><span>Atelier <strong>SPARQL</strong></span></div>
+    <span class="header-meta">Wikidata <span aria-hidden="true">/</span> MySQL <span aria-hidden="true">/</span> DBML</span>
+  </header>
+  <main>
+    <div class="intro">
+      <div><p class="eyebrow">DE LA REQUÊTE À LA TABLE</p><h1>Préparer un schéma de données</h1><p>Collez votre SPARQL, vérifiez les colonnes, puis exportez vers MySQL ou dbdiagram.io.</p></div>
+      <div class="local-note"><span aria-hidden="true">⌘</span> Analyse dans votre navigateur<br><small>Aucune requête n’est exécutée.</small></div>
+    </div>
+
+    <section class="workspace" aria-label="Requête et schéma généré">
+      <div class="panel source-panel">
+        <div class="panel-heading"><h2><span class="step">01</span> Votre requête</h2><span class="language-label">SPARQL</span></div>
+        <div class="source-toolbar"><label for="example">Essayer un exemple</label><select id="example"><option value="cats">Chats</option><option value="cinemas">Cinémas et coordonnées</option><option value="count">Compter par pays</option></select></div>
+        <label class="sr-only" for="query">Requête SPARQL SELECT</label>
+        <textarea id="query" spellcheck="false" autocapitalize="off" autocomplete="off" aria-describedby="query-hint" wrap="off">#title: Chats
+SELECT ?item ?itemLabel
+WHERE {
+  ?item wdt:P31 wd:Q146.
+  SERVICE wikibase:label {
+    bd:serviceParam wikibase:language
+      "fr,mul,en".
+  }
+}</textarea>
+        <div class="source-actions"><button id="analyse" class="button primary">Analyser la requête</button><span id="query-hint">Ctrl / ⌘ + Entrée</span><a id="wikidata-link" target="_blank" rel="noopener noreferrer" href="https://query.wikidata.org/">Ouvrir dans Wikidata</a></div>
+        <div id="query-error" class="error-box" role="alert" hidden></div>
+      </div>
+
+      <div class="panel result-panel">
+        <div class="panel-heading"><h2><span class="step">03</span> Votre schéma</h2><span id="column-count" class="count-badge">2 colonnes</span></div>
+        <div class="output-toolbar"><div role="tablist" aria-label="Vue du schéma" class="tabs"><button id="mysql-tab" role="tab" aria-selected="true" aria-controls="code-panel" data-format="mysql">MySQL</button><button id="dbml-tab" role="tab" aria-selected="false" aria-controls="code-panel" data-format="dbml" tabindex="-1">DBML</button><button id="table-tab" role="tab" aria-selected="false" aria-controls="code-panel" data-format="table" tabindex="-1">Tableau</button><button id="csv-tab" role="tab" aria-selected="false" aria-controls="code-panel" data-format="csv" tabindex="-1">CSV</button></div><span id="extension-label">.sql</span></div>
+        <div id="code-panel" role="tabpanel" aria-labelledby="mysql-tab" tabindex="0" class="code-panel" data-view="mysql"><pre id="code-preview"><code id="output">CREATE TABLE `chats` (
+  `item` VARCHAR(255),
+  `itemLabel` TEXT
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4;</code></pre><div id="table-preview" hidden></div><span id="output-placeholder" hidden></span></div>
+        <div class="result-actions"><button id="copy" class="button secondary">Copier le code</button><button id="download" class="button dark">Télécharger .sql</button></div>
+        <p id="format-help" class="format-help">Dans dbdiagram.io, utilisez l’import SQL et choisissez MySQL.</p>
+      </div>
+    </section>
+
+    <section class="panel schema-panel" aria-labelledby="schema-heading">
+      <div class="schema-top"><div><h2 id="schema-heading"><span class="step">02</span> Vérifier les colonnes</h2><p>Les types sont des suggestions. Choisissez une clé seulement si ses valeurs sont uniques.</p></div><div class="table-name"><label for="table-name">Nom de la table</label><input id="table-name" value="chats" maxlength="64" autocomplete="off" spellcheck="false"></div></div>
+      <div id="stale-note" class="notice" hidden>La requête a changé. Analysez-la à nouveau pour actualiser les colonnes.</div>
+      <fieldset id="schema-fields"><legend class="sr-only">Colonnes et contraintes</legend><div class="table-scroll"><table><thead><tr><th scope="col">Variable SPARQL</th><th scope="col">Nom de colonne</th><th scope="col">Type MySQL</th><th scope="col" class="check-heading">NULL autorisé</th><th scope="col" class="check-heading">Clé primaire</th></tr></thead><tbody id="columns"></tbody></table></div></fieldset>
+      <div id="schema-error" class="error-box" role="alert" hidden></div>
+      <p class="constraint-note">Aucune clé primaire par défaut. Plusieurs colonnes cochées forment une clé composée. Une clé primaire interdit NULL.</p>
+      <div id="warnings" class="warnings" hidden><h3>À vérifier dans les résultats</h3><ul></ul></div>
+    </section>
+
+    <aside class="explanation"><span class="explanation-tag">À RETENIR</span><div><h2>Un schéma décrit la table. Il ne contient pas les résultats.</h2><p>Pour remplir une base MySQL : exécutez la requête dans Wikidata Query Service, exportez le CSV, puis importez les données dans la table créée.</p></div></aside>
+    <details class="help"><summary>Quelles transformations sont prises en charge ?</summary><div><p>L’outil extrait les colonnes d’un <code>SELECT</code> explicite, avec <code>DISTINCT</code>, <code>REDUCED</code> ou des expressions avec <code>AS</code>. Les commentaires, les préfixes et les chaînes de caractères sont pris en compte.</p><p>Pour <code>SELECT *</code>, indiquez les variables à exporter. Le corps <code>WHERE</code> n’est pas traduit en SQL, aucune relation entre tables n’est inventée et la syntaxe SPARQL complète n’est pas validée. Testez toujours la requête dans Wikidata.</p><p>Une image Wikidata est une URL, une coordonnée <code>P625</code> est un texte WKT et une date historique peut dépasser les formats de MySQL. Choisissez vos types après avoir regardé les données.</p></div></details>
+  </main>
+  <footer><span>Atelier SPARQL <span aria-hidden="true">·</span> Outil pédagogique</span><nav aria-label="Ressources"><a href="https://www.mediawiki.org/wiki/Wikidata_Query_Service/User_Manual" target="_blank" rel="noopener noreferrer">Documentation Wikidata</a><a href="https://dbdiagram.io/" target="_blank" rel="noopener noreferrer">dbdiagram.io</a></nav></footer>
+  <div id="status" role="status" aria-live="polite" class="toast" hidden></div>
+<script>
+(() => {
+'use strict';
+/**
+ * Analyse the projected columns of a SELECT query, not its full SPARQL semantics.
+ * No query is executed and no data is fetched. All SQL choices stay editable.
+ */
+class QueryError extends Error {}
+
+function tokenize(source) {
+  const tokens = [];
+  let i = 0;
+  const push = (type, value, start) => tokens.push({ type, value, start, end: i });
+  while (i < source.length) {
+    const start = i;
+    const c = source[i];
+    if (/\s/.test(c)) { i++; continue; }
+    if (c === '#') { while (i < source.length && !/[\r\n]/.test(source[i])) i++; continue; }
+    if (c === '"' || c === "'") {
+      const delimiter = source.slice(i, i + 3) === c.repeat(3) ? c.repeat(3) : c;
+      i += delimiter.length;
+      let closed = false;
+      while (i < source.length) {
+        if (source[i] === '\\') { i += 2; continue; }
+        if (source.slice(i, i + delimiter.length) === delimiter) { i += delimiter.length; closed = true; break; }
+        i++;
+      }
+      if (!closed) throw new QueryError('Une chaîne de caractères n’est pas fermée. Vérifiez les guillemets.');
+      push('literal', source.slice(start, i), start); continue;
+    }
+    if (c === '<') {
+      const iri = source.slice(i).match(/^<[^<>"{}|^`\x00-\x20]*>/);
+      if (iri) { i += iri[0].length; push('iri', iri[0], start); continue; }
+    }
+    const variable = source.slice(i).match(/^[?$][\p{L}\p{N}_][\p{L}\p{N}_\u00B7\p{Mn}\p{Mc}]*/u);
+    if (variable) { i += variable[0].length; push('variable', variable[0].slice(1), start); continue; }
+    const pname = source.slice(i).match(/^(?:[\p{L}_][\p{L}\p{N}_-]*)?:[^\s{}()\[\];,<>!="'|^*+/?#]*/u);
+    if (pname) {
+      const value = pname[0].replace(/\.+$/, '');
+      i += value.length; push('pname', value, start); continue;
+    }
+    const word = source.slice(i).match(/^[\p{L}_][\p{L}\p{N}_-]*/u);
+    if (word) { i += word[0].length; push('word', word[0], start); continue; }
+    const number = source.slice(i).match(/^(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?/);
+    if (number) { i += number[0].length; push('number', number[0], start); continue; }
+    i++; push('punct', c, start);
+  }
+  const stack = [];
+  const pairs = { ')': '(', '}': '{', ']': '[' };
+  for (const token of tokens) {
+    if (token.type !== 'punct') continue;
+    if ('({['.includes(token.value)) stack.push(token.value);
+    if (pairs[token.value] && stack.pop() !== pairs[token.value]) throw new QueryError('Les parenthèses, accolades ou crochets ne sont pas équilibrés.');
+  }
+  if (stack.length) throw new QueryError('Une parenthèse, une accolade ou un crochet n’est pas fermé.');
+  return tokens;
+}
+
+const isWord = (token, word) => token?.type === 'word' && token.value.toUpperCase() === word;
+const isPunct = (token, value) => token?.type === 'punct' && token.value === value;
+
+function identifier(value, fallback = 'colonne') {
+  let result = String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9_]/g, '_');
+  if (!result) result = fallback;
+  if (/^[0-9]/.test(result)) result = '_' + result;
+  return result.slice(0, 64);
+}
+
+function propertyId(token, prefixes) {
+  if (!token) return null;
+  let uri = '';
+  if (token.type === 'pname') {
+    const [prefix, local] = token.value.split(':');
+    if (!prefixes[prefix]) return null;
+    uri = prefixes[prefix] + local;
+  } else if (token.type === 'iri') uri = token.value.slice(1, -1);
+  return uri.match(/^https?:\/\/www\.wikidata\.org\/prop\/(?:direct|statement|qualifier)\/(P[0-9]+)$/)?.[1] ?? null;
+}
+
+function suggestType(variable, expression, tokens, prefixes) {
+  const hints = [];
+  let type = 'TEXT';
+  let reason = 'Le type dépend des valeurs réelles ; texte par défaut.';
+  if (expression.length) {
+    let fn = '';
+    if (expression[0].type === 'word' && isPunct(expression[1], '(')) {
+      let depth = 0;
+      let end = -1;
+      for (let i = 1; i < expression.length; i++) {
+        if (isPunct(expression[i], '(')) depth++;
+        if (isPunct(expression[i], ')')) depth--;
+        if (depth === 0) { end = i; break; }
+      }
+      if (end === expression.length - 1) fn = expression[0].value.toUpperCase();
+    }
+    if (fn === 'COUNT') { type = 'BIGINT'; reason = 'COUNT renvoie un nombre entier.'; }
+    else if (['AVG', 'SUM', 'ABS', 'ROUND', 'CEIL', 'FLOOR'].includes(fn)) { type = 'DOUBLE'; reason = 'Expression numérique : précision à vérifier.'; }
+    else if (['YEAR', 'MONTH', 'DAY', 'HOURS', 'MINUTES', 'STRLEN'].includes(fn)) { type = 'INT'; reason = 'Cette fonction renvoie un entier.'; }
+    else if (['ISIRI', 'ISURI', 'ISLITERAL', 'ISNUMERIC', 'BOUND', 'REGEX', 'CONTAINS', 'STRSTARTS', 'STRENDS'].includes(fn)) { type = 'BOOLEAN'; reason = 'Cette fonction renvoie un booléen.'; }
+    else if (['IRI', 'URI'].includes(fn)) { type = 'VARCHAR(2048)'; reason = 'Cette expression produit une URI.'; }
+    else if (['STR', 'CONCAT', 'GROUP_CONCAT', 'REPLACE', 'STRBEFORE', 'STRAFTER', 'SUBSTR', 'UCASE', 'LCASE', 'LANG', 'ENCODE_FOR_URI', 'STRLANG', 'STRDT'].includes(fn)) reason = 'Cette fonction produit une valeur textuelle.';
+    else { hints.push('Le type de l’expression est une proposition : vérifiez les résultats.'); }
+    return { type, reason, hints };
+  }
+  if (/(Label|Description|AltLabel)$/.test(variable)) return { type: 'TEXT', reason: 'Libellé, description ou alias textuel.', hints };
+  let entitySubject = false;
+  let objectType = null;
+  let objectReason = '';
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
+    if (t.type !== 'variable' || t.value !== variable) continue;
+    if (tokens[i + 1]?.type === 'pname' || tokens[i + 1]?.type === 'iri' || isWord(tokens[i + 1], 'A')) entitySubject = true;
+    const p = propertyId(tokens[i - 1], prefixes);
+    if (!p) continue;
+    if (['P18', 'P154', 'P856', 'P953', 'P2699'].includes(p)) { objectType = 'VARCHAR(2048)'; objectReason = `${p} : une image ou une page est stockée sous forme d’URL.`; }
+    else if (p === 'P625') { objectType = 'TEXT'; objectReason = 'P625 : coordonnées WKT, par exemple Point(longitude latitude).'; hints.push('Une coordonnée WKT ne tient pas dans un seul FLOAT. Conservez le texte ou projetez séparément latitude et longitude.'); }
+    else if (['P569', 'P570', 'P571', 'P577', 'P580', 'P582'].includes(p)) { objectType = 'TEXT'; objectReason = `${p} : date Wikidata conservée en texte.`; hints.push('Pour une date Wikidata, vérifiez la précision et l’année avant de choisir DATE ou DATETIME.'); }
+    else if (['P1082', 'P2043', 'P2044', 'P2046', 'P2047', 'P2048', 'P2067', 'P2124', 'P2131'].includes(p)) { objectType = 'DOUBLE'; objectReason = `${p} : quantité numérique suggérée ; unité et précision à vérifier.`; }
+    else if (['P31', 'P279', 'P17', 'P19', 'P20', 'P21', 'P27', 'P50', 'P106', 'P131', 'P170', 'P176', 'P361'].includes(p)) { objectType = 'VARCHAR(255)'; objectReason = `${p} : URI d’une entité Wikidata.`; }
+  }
+  if (objectType) return { type: objectType, reason: objectReason, hints };
+  if (entitySubject) return { type: 'VARCHAR(255)', reason: 'Variable utilisée comme sujet : URI probable, longueur à vérifier.', hints };
+  return { type, reason, hints };
+}
+
+function analyseQuery(source) {
+  if (typeof source !== 'string' || !source.trim()) throw new QueryError('Collez une requête SELECT pour commencer.');
+  if (source.length > 100000) throw new QueryError('Cette requête est trop longue. Limitez-la à 100 000 caractères.');
+  const tokens = tokenize(source);
+  let position = 0;
+  const prefixes = { wdt: 'http://www.wikidata.org/prop/direct/', ps: 'http://www.wikidata.org/prop/statement/', pq: 'http://www.wikidata.org/prop/qualifier/' };
+  while (isWord(tokens[position], 'PREFIX') || isWord(tokens[position], 'BASE')) {
+    if (isWord(tokens[position], 'PREFIX')) {
+      if (tokens[position + 1]?.type !== 'pname' || !tokens[position + 1].value.endsWith(':') || tokens[position + 2]?.type !== 'iri') throw new QueryError('La déclaration PREFIX doit contenir un préfixe et une URI entre chevrons.');
+      prefixes[tokens[position + 1].value.slice(0, -1)] = tokens[position + 2].value.slice(1, -1);
+      position += 3;
+    } else {
+      if (tokens[position + 1]?.type !== 'iri') throw new QueryError('La déclaration BASE doit contenir une URI entre chevrons.');
+      position += 2;
+    }
+  }
+  if (!isWord(tokens[position], 'SELECT')) throw new QueryError('Cet outil accepte les requêtes SELECT. ASK, CONSTRUCT et DESCRIBE ne renvoient pas la même structure de tableau.');
+  position++;
+  const distinct = isWord(tokens[position], 'DISTINCT');
+  const reduced = isWord(tokens[position], 'REDUCED');
+  if (distinct || reduced) position++;
+  if (isPunct(tokens[position], '*')) throw new QueryError('Remplacez SELECT * par une liste explicite, par exemple SELECT ?item ?itemLabel. Les variables visibles peuvent dépendre des sous-requêtes.');
+  const projections = [];
+  while (position < tokens.length && !isWord(tokens[position], 'WHERE') && !isPunct(tokens[position], '{') && !isWord(tokens[position], 'FROM')) {
+    const token = tokens[position];
+    if (token.type === 'variable') { projections.push({ variable: token.value, expression: [], expressionText: '' }); position++; continue; }
+    if (isPunct(token, '(')) {
+      const begin = position;
+      let depth = 1;
+      let aliasAt = -1;
+      let aliasCount = 0;
+      position++;
+      for (; position < tokens.length && depth; position++) {
+        if (isPunct(tokens[position], '(')) depth++;
+        if (isPunct(tokens[position], ')')) depth--;
+        if (depth === 1 && isWord(tokens[position], 'AS')) { aliasAt = position; aliasCount++; }
+      }
+      const end = position - 1;
+      if (aliasCount !== 1 || aliasAt < 0 || tokens[aliasAt + 1]?.type !== 'variable' || aliasAt + 2 !== end || aliasAt === begin + 1) throw new QueryError('Donnez un seul alias à chaque expression : (COUNT(?item) AS ?nombre).');
+      const expression = tokens.slice(begin + 1, aliasAt);
+      projections.push({ variable: tokens[aliasAt + 1].value, expression, expressionText: source.slice(tokens[begin + 1].start, tokens[aliasAt].start).trim() });
+      continue;
+    }
+    throw new QueryError('La partie SELECT contient un élément inattendu. Utilisez des variables ou des expressions entre parenthèses avec AS.');
+  }
+  if (!projections.length) throw new QueryError('La partie SELECT doit contenir au moins une variable.');
+  if (projections.length > 80) throw new QueryError('Limitez la projection à 80 colonnes pour conserver un schéma lisible.');
+  const seen = new Set();
+  for (const p of projections) {
+    if (seen.has(p.variable)) throw new QueryError(`La variable ?${p.variable} est projetée plusieurs fois. Utilisez des alias différents.`);
+    seen.add(p.variable);
+  }
+  let bodyStart = position;
+  if (isWord(tokens[position], 'FROM')) {
+    while (isWord(tokens[position], 'FROM')) {
+      position++;
+      if (isWord(tokens[position], 'NAMED')) position++;
+      if (tokens[position]?.type !== 'iri') throw new QueryError('La clause FROM doit désigner une URI entre chevrons.');
+      position++;
+    }
+    bodyStart = position;
+  }
+  if (isWord(tokens[position], 'WHERE')) position++;
+  if (!isPunct(tokens[position], '{')) throw new QueryError('La requête doit contenir un groupe WHERE { … }.');
+  const warnings = [];
+  if (tokens.some(t => isWord(t, 'OPTIONAL'))) warnings.push('OPTIONAL peut laisser des cellules vides. Les colonnes sont donc autorisées à être NULL par défaut.');
+  if (tokens.some(t => isWord(t, 'UNION'))) warnings.push('UNION peut produire des valeurs répétées ou manquantes. Vérifiez les contraintes avant de les ajouter.');
+  if (distinct) warnings.push('DISTINCT enlève les lignes identiques ; il ne garantit pas qu’une seule colonne soit unique.');
+  if (reduced) warnings.push('REDUCED ne garantit pas la suppression de tous les doublons.');
+  if (tokens.slice(position + 1).some(t => isWord(t, 'SELECT'))) warnings.push('Une sous-requête est présente. Les types proposés restent indicatifs.');
+  const columns = projections.map((p, index) => {
+    const suggestion = suggestType(p.variable, p.expression, tokens.slice(bodyStart), prefixes);
+    warnings.push(...suggestion.hints);
+    return { id: index, variable: p.variable, name: identifier(p.variable), type: suggestion.type, nullable: true, primary: false, reason: suggestion.reason, expression: p.expressionText };
+  });
+  const sourceTitle = source.match(/^\s*#title:\s*(.+)$/im)?.[1]?.trim();
+  return { columns, warnings: [...new Set(warnings)], title: sourceTitle || null, distinct };
+}
+
+const SQL_TYPES = ['TEXT', 'VARCHAR(255)', 'VARCHAR(2048)', 'INT', 'BIGINT', 'DOUBLE', 'DECIMAL(20,6)', 'BOOLEAN', 'DATE', 'DATETIME'];
+
+function validateSchema(table, columns) {
+  if (!/^[A-Za-z_][A-Za-z0-9_]{0,63}$/.test(table)) throw new QueryError('Le nom de table doit commencer par une lettre ou _, puis contenir des lettres sans accent, chiffres ou _. Maximum : 64 caractères.');
+  if (!columns.length) throw new QueryError('Analysez une requête pour définir ses colonnes.');
+  const seen = new Set();
+  for (const c of columns) {
+    if (!/^[A-Za-z_][A-Za-z0-9_]{0,63}$/.test(c.name)) throw new QueryError(`Nom de colonne invalide pour ?${c.variable}. Utilisez des lettres sans accent, chiffres et _.`);
+    const normal = c.name.toLowerCase();
+    if (seen.has(normal)) throw new QueryError(`Le nom de colonne « ${c.name} » est utilisé plusieurs fois.`);
+    seen.add(normal);
+    if (!SQL_TYPES.includes(c.type)) throw new QueryError('Un type de colonne n’est pas reconnu.');
+  }
+  const primary = columns.filter(c => c.primary);
+  const rowBytes = columns.reduce((total, c) => {
+    const length = c.type.match(/^VARCHAR\(([0-9]+)\)$/)?.[1];
+    return total + (length ? Number(length) * 4 + 2 : 12);
+  }, 8 + Math.ceil(columns.length / 8));
+  if (rowBytes > 65535) throw new QueryError('La taille déclarée des colonnes dépasse la limite de ligne MySQL avec utf8mb4. Utilisez TEXT pour certaines URL ou réduisez les VARCHAR après avoir vérifié leurs valeurs.');
+  if (primary.some(c => c.type === 'TEXT')) throw new QueryError('Une clé primaire ne peut pas utiliser TEXT ici. Choisissez par exemple VARCHAR(255), après avoir vérifié la longueur des valeurs.');
+  const primaryBytes = primary.reduce((total, c) => total + ({ 'VARCHAR(255)': 1020, 'VARCHAR(2048)': 8192, 'INT': 4, 'BIGINT': 8, 'DOUBLE': 8, 'DECIMAL(20,6)': 10, 'BOOLEAN': 1, 'DATE': 3, 'DATETIME': 8 }[c.type] ?? 0), 0);
+  if (primaryBytes > 3072) throw new QueryError('Cette clé primaire dépasse la taille d’index InnoDB avec utf8mb4. Pour une URI Wikidata courte, utilisez VARCHAR(255).');
+}
+
+function generateSchema(table, columns, format = 'mysql') {
+  validateSchema(table, columns);
+  if (format === 'table' || format === 'csv') {
+    const quote = value => '"' + String(value).replace(/"/g, '""') + '"';
+    const header = columns.map(c => quote(c.name)).join(',');
+    const emptyRow = columns.map(() => quote('')).join(',');
+    return header + '\r\n' + emptyRow + '\r\n';
+  }
+  if (format === 'dbml') {
+    const primary = columns.filter(c => c.primary);
+    const lines = columns.map(c => {
+      const flags = [];
+      if (c.primary && primary.length === 1) flags.push('pk');
+      if (c.primary || !c.nullable) flags.push('not null');
+      return `  ${c.name} ${c.type.toLowerCase()}${flags.length ? ` [${flags.join(', ')}]` : ''}`;
+    });
+    if (primary.length > 1) lines.push('', '  indexes {', `    (${primary.map(c => c.name).join(', ')}) [pk]`, '  }');
+    return `Table ${table} {\n${lines.join('\n')}\n}\n`;
+  }
+  if (format !== 'mysql') throw new QueryError('Choisissez mysql, dbml, table ou csv.');
+  const lines = columns.map(c => `  \`${c.name}\` ${c.type}${c.primary || !c.nullable ? ' NOT NULL' : ''}`);
+  const primary = columns.filter(c => c.primary);
+  if (primary.length) lines.push(`  PRIMARY KEY (${primary.map(c => `\`${c.name}\``).join(', ')})`);
+  return `CREATE TABLE \`${table}\` (\n${lines.join(',\n')}\n) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4;\n`;
+}
+
+
+const EXAMPLES = {
+  cats: { table: 'chats', query: '#title: Chats\nSELECT ?item ?itemLabel\nWHERE {\n  ?item wdt:P31 wd:Q146.\n  SERVICE wikibase:label {\n    bd:serviceParam wikibase:language\n      "fr,mul,en".\n  }\n}' },
+  cinemas: { table: 'cinemas', query: '#title: Cinémas en France\nSELECT ?cinema ?cinemaLabel ?adresse ?coordonnees ?image\nWHERE {\n  ?cinema wdt:P31 wd:Q41253;\n          wdt:P17 wd:Q142.\n  OPTIONAL { ?cinema wdt:P6375 ?adresse. }\n  OPTIONAL { ?cinema wdt:P625 ?coordonnees. }\n  OPTIONAL { ?cinema wdt:P18 ?image. }\n  SERVICE wikibase:label {\n    bd:serviceParam wikibase:language "fr,mul,en".\n  }\n}\nLIMIT 100' },
+  count: { table: 'effectifs_par_pays', query: '#title: Nombre de chats par pays\nSELECT ?pays ?paysLabel (COUNT(DISTINCT ?chat) AS ?nombre)\nWHERE {\n  ?chat wdt:P31 wd:Q146;\n        wdt:P17 ?pays.\n  SERVICE wikibase:label {\n    bd:serviceParam wikibase:language "fr,mul,en".\n  }\n}\nGROUP BY ?pays ?paysLabel\nORDER BY DESC(?nombre)' }
+};
+const $ = id => document.getElementById(id);
+const query = $('query');
+const tableInput = $('table-name');
+const tbody = $('columns');
+const OUTPUT_FORMATS = ['mysql', 'dbml', 'table', 'csv'];
+const state = { columns: [], warnings: [], format: 'mysql', analysedSource: null, code: '', valid: false };
+let toastTimer;
+
+function notify(message) {
+  clearTimeout(toastTimer);
+  $('status').textContent = message;
+  $('status').hidden = false;
+  toastTimer = setTimeout(() => { $('status').hidden = true; }, 3500);
+}
+function errorMessage(id, message) { $(id).textContent = message || ''; $(id).hidden = !message; }
+function updateQueryLink() { $('wikidata-link').href = 'https://query.wikidata.org/#' + encodeURIComponent(query.value); }
+function isDirty() { return state.analysedSource !== query.value; }
+function invalidate(message) {
+  state.valid = false;
+  state.code = '';
+  $('output').textContent = '';
+  $('code-preview').hidden = true;
+  $('table-preview').replaceChildren();
+  $('table-preview').hidden = true;
+  $('output-placeholder').textContent = message;
+  $('output-placeholder').hidden = false;
+  $('copy').disabled = true;
+  $('download').disabled = true;
+}
+function renderOutput() {
+  errorMessage('schema-error', '');
+  const stale = isDirty();
+  $('stale-note').hidden = !stale || !state.columns.length;
+  $('schema-fields').disabled = stale;
+  if (stale) { invalidate('Analysez la requête pour actualiser le schéma.'); return; }
+  try {
+    state.code = generateSchema(tableInput.value.trim(), state.columns, state.format);
+    state.valid = true;
+    $('output').textContent = state.code;
+    const tableView = state.format === 'table';
+    $('code-preview').hidden = tableView;
+    $('table-preview').hidden = !tableView;
+    if (tableView) renderTablePreview();
+    $('output-placeholder').hidden = true;
+    $('copy').disabled = false;
+    $('download').disabled = false;
+  } catch (e) {
+    errorMessage('schema-error', e.message);
+    invalidate('Vérifiez les noms, les types et les contraintes des colonnes.');
+  }
+}
+function renderTablePreview() {
+  const table = document.createElement('table');
+  table.className = 'result-table';
+  const caption = document.createElement('caption');
+  caption.textContent = 'Table « ' + tableInput.value.trim() + ' »';
+  const head = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+  const body = document.createElement('tbody');
+  const emptyRow = document.createElement('tr');
+  for (const c of state.columns) {
+    const th = document.createElement('th');
+    th.scope = 'col'; th.textContent = c.name;
+    headerRow.append(th);
+    emptyRow.append(document.createElement('td'));
+  }
+  head.append(headerRow); body.append(emptyRow);
+  table.append(caption, head, body);
+  $('table-preview').replaceChildren(table);
+}
+function buildColumns() {
+  tbody.replaceChildren();
+  for (const c of state.columns) {
+    const row = document.createElement('tr');
+    const variableCell = document.createElement('td');
+    const variable = document.createElement('span');
+    variable.className = 'variable'; variable.textContent = '?' + c.variable;
+    const reason = document.createElement('span');
+    reason.className = 'reason'; reason.textContent = c.reason;
+    variableCell.append(variable, reason);
+    if (c.expression) { const expr = document.createElement('span'); expr.className = 'reason'; expr.textContent = c.expression; variableCell.append(expr); }
+    row.append(variableCell);
+    const nameCell = document.createElement('td');
+    const name = document.createElement('input');
+    name.className = 'column-name'; name.value = c.name; name.maxLength = 64; name.spellcheck = false; name.autocomplete = 'off'; name.setAttribute('aria-label', 'Nom de colonne pour ?' + c.variable);
+    name.addEventListener('input', () => { c.name = name.value.trim(); renderOutput(); });
+    nameCell.append(name); row.append(nameCell);
+    const typeCell = document.createElement('td');
+    const select = document.createElement('select');
+    select.className = 'type-select'; select.setAttribute('aria-label', 'Type MySQL pour ?' + c.variable);
+    for (const type of SQL_TYPES) { const option = document.createElement('option'); option.value = type; option.textContent = type; select.append(option); }
+    select.value = c.type;
+    select.addEventListener('change', () => { c.type = select.value; renderOutput(); });
+    typeCell.append(select); row.append(typeCell);
+    const nullCell = document.createElement('td'); nullCell.className = 'check-cell';
+    const nullable = document.createElement('input'); nullable.type = 'checkbox'; nullable.checked = c.nullable; nullable.disabled = c.primary; nullable.setAttribute('aria-label', 'Autoriser NULL pour ?' + c.variable);
+    nullable.addEventListener('change', () => { c.nullable = nullable.checked; renderOutput(); });
+    nullCell.append(nullable); row.append(nullCell);
+    const keyCell = document.createElement('td'); keyCell.className = 'check-cell';
+    const primary = document.createElement('input'); primary.type = 'checkbox'; primary.checked = c.primary; primary.setAttribute('aria-label', 'Clé primaire pour ?' + c.variable);
+    primary.addEventListener('change', () => { c.primary = primary.checked; nullable.checked = c.primary ? false : c.nullable; nullable.disabled = c.primary; renderOutput(); });
+    keyCell.append(primary); row.append(keyCell);
+    tbody.append(row);
+  }
+  const n = state.columns.length;
+  $('column-count').textContent = n + (n === 1 ? ' colonne' : ' colonnes');
+  const warnings = $('warnings');
+  const list = warnings.querySelector('ul'); list.replaceChildren();
+  for (const warning of state.warnings) { const li = document.createElement('li'); li.textContent = warning; list.append(li); }
+  warnings.hidden = state.warnings.length === 0;
+}
+function analyse({ announce = true } = {}) {
+  updateQueryLink();
+  errorMessage('query-error', '');
+  query.removeAttribute('aria-invalid');
+  try {
+    const result = analyseQuery(query.value);
+    state.columns = result.columns;
+    state.warnings = result.warnings;
+    state.analysedSource = query.value;
+    buildColumns();
+    renderOutput();
+    if (announce) notify(state.columns.length + ' colonnes détectées. Vérifiez les types avant l’export.');
+    return result;
+  } catch (e) {
+    state.columns = []; state.warnings = []; state.analysedSource = null;
+    buildColumns();
+    errorMessage('query-error', e.message);
+    query.setAttribute('aria-invalid', 'true');
+    $('schema-fields').disabled = true;
+    $('stale-note').hidden = true;
+    errorMessage('schema-error', '');
+    invalidate('La requête ne peut pas être analysée. Consultez le message à gauche.');
+    return null;
+  }
+}
+function setFormat(format) {
+  if (!OUTPUT_FORMATS.includes(format)) throw new Error('Format non reconnu.');
+  state.format = format;
+  for (const tab of document.querySelectorAll('[data-format]')) { const selected = tab.dataset.format === format; tab.setAttribute('aria-selected', String(selected)); tab.tabIndex = selected ? 0 : -1; }
+  $('code-panel').setAttribute('aria-labelledby', format + '-tab');
+  $('code-panel').dataset.view = format;
+  const csvView = format === 'csv' || format === 'table';
+  const extension = format === 'mysql' ? '.sql' : csvView ? '.csv' : '.dbml';
+  $('extension-label').textContent = format === 'table' ? 'Aperçu' : extension;
+  $('copy').textContent = format === 'table' ? 'Copier le tableau' : format === 'csv' ? 'Copier le CSV' : 'Copier le code';
+  $('download').textContent = 'Télécharger ' + extension;
+  const help = {
+    mysql: 'Dans dbdiagram.io, utilisez l’import SQL et choisissez MySQL.',
+    dbml: 'Dans dbdiagram.io, collez ce code directement dans l’éditeur DBML.',
+    table: 'Copiez le tableau, sélectionnez une cellule dans Google Sheets, puis collez. Les en-têtes seront répartis dans les colonnes. La ligne vide est un modèle à remplir.',
+    csv: 'Modèle CSV avec les noms de colonnes et une ligne vide, sans résultats Wikidata.'
+  };
+  $('format-help').textContent = help[format];
+  renderOutput();
+}
+$('analyse').addEventListener('click', () => analyse());
+query.addEventListener('input', () => { updateQueryLink(); query.removeAttribute('aria-invalid'); errorMessage('query-error', ''); renderOutput(); });
+query.addEventListener('keydown', event => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); analyse(); } if (event.key === 'Tab' && !event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) { /* Preserve normal keyboard focus navigation. */ } });
+tableInput.addEventListener('input', renderOutput);
+$('example').addEventListener('change', () => { const example = EXAMPLES[$('example').value]; query.value = example.query; tableInput.value = example.table; analyse(); });
+for (const tab of document.querySelectorAll('[data-format]')) {
+  tab.addEventListener('click', () => setFormat(tab.dataset.format));
+  tab.addEventListener('keydown', event => { if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) { event.preventDefault(); const current = OUTPUT_FORMATS.indexOf(state.format); const next = event.key === 'Home' ? OUTPUT_FORMATS[0] : event.key === 'End' ? OUTPUT_FORMATS.at(-1) : OUTPUT_FORMATS[(current + (event.key === 'ArrowRight' ? 1 : -1) + OUTPUT_FORMATS.length) % OUTPUT_FORMATS.length]; setFormat(next); $(next + '-tab').focus(); } });
+}
+function clipboardContent() {
+  if (state.format !== 'table') return { text: state.code, html: null };
+  const header = state.columns.map(c => c.name).join('\t');
+  const emptyRow = state.columns.map(() => '').join('\t');
+  const table = $('table-preview').querySelector('table');
+  const copyTable = table?.cloneNode(true);
+  copyTable?.querySelector('caption')?.remove();
+  return { text: header + '\n' + emptyRow + '\n', html: copyTable?.outerHTML || null };
+}
+$('copy').addEventListener('click', async () => {
+  if (!state.valid) return;
+  const content = clipboardContent();
+  const copiedMessage = state.format === 'table' ? 'Tableau copié. Collez-le dans Google Sheets.' : state.format === 'csv' ? 'CSV copié.' : 'Code copié.';
+  if (content.html && typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
+    try {
+      const item = new ClipboardItem({
+        'text/plain': new Blob([content.text], { type: 'text/plain' }),
+        'text/html': new Blob([content.html], { type: 'text/html' })
+      });
+      await navigator.clipboard.write([item]);
+      notify(copiedMessage);
+      return;
+    } catch { /* Continue with tab-separated text when rich copying is unavailable. */ }
+  }
+  try { await navigator.clipboard.writeText(content.text); notify(copiedMessage); }
+  catch {
+    const temp = document.createElement('textarea'); temp.value = content.text; temp.className = 'sr-only'; document.body.append(temp); temp.select();
+    let copied = false; try { copied = document.execCommand('copy'); } catch {} finally { temp.remove(); $('copy').focus(); }
+    notify(copied ? copiedMessage : 'La copie automatique n’est pas disponible. Sélectionnez le tableau puis copiez-le avec Ctrl / ⌘ + C.');
+  }
+});
+$('download').addEventListener('click', () => {
+  if (!state.valid) return;
+  const csvExport = state.format === 'csv' || state.format === 'table';
+  const blob = new Blob([state.code], { type: csvExport ? 'text/csv;charset=utf-8' : 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a'); link.href = url; link.download = tableInput.value.trim() + (state.format === 'mysql' ? '.sql' : csvExport ? '.csv' : '.dbml'); document.body.append(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  notify('Fichier prêt à télécharger.');
+});
+analyse({ announce: false });
+
+// WebMCP shares exactly the same analysis and output state as the interface.
+if (document.modelContext?.registerTool) {
+  const lifecycle = new AbortController();
+  const tool = {
+    name: 'convert_sparql_result_schema',
+    title: 'Convertir les colonnes SPARQL',
+    description: 'Analyse un SELECT SPARQL explicite, met à jour l’atelier et produit un schéma MySQL ou DBML modifiable, ou un modèle CSV avec une ligne vide. Aucune requête n’est exécutée. Les colonnes restent NULL et sans clé primaire par défaut.',
+    inputSchema: { type: 'object', properties: { query: { type: 'string', maxLength: 100000 }, tableName: { type: 'string', maxLength: 64 }, format: { type: 'string', enum: OUTPUT_FORMATS } }, required: ['query'], additionalProperties: false },
+    annotations: { readOnlyHint: false, untrustedContentHint: true },
+    execute(input) {
+      if (!input || typeof input !== 'object' || Array.isArray(input) || typeof input.query !== 'string') throw new Error('Une requête texte est obligatoire.');
+      if (Object.keys(input).some(k => !['query', 'tableName', 'format'].includes(k))) throw new Error('Paramètre inconnu.');
+      if (input.tableName !== undefined && (typeof input.tableName !== 'string' || !/^[A-Za-z_][A-Za-z0-9_]{0,63}$/.test(input.tableName))) throw new Error('Nom de table invalide.');
+      if (input.format !== undefined && !OUTPUT_FORMATS.includes(input.format)) throw new Error('Format non reconnu.');
+      const analysed = analyseQuery(input.query);
+      const name = input.tableName || identifier(analysed.title || 'resultats', 'resultats').toLowerCase();
+      const format = input.format || state.format;
+      const code = generateSchema(name, analysed.columns, format);
+      query.value = input.query; tableInput.value = name; analyse({ announce: false }); setFormat(format);
+      return { table: name, format, columns: state.columns.map(({ variable, name, type }) => ({ variable, name, type })), code, warnings: state.warnings };
+    }
+  };
+  try { Promise.resolve(document.modelContext.registerTool(tool, { signal: lifecycle.signal })).catch(() => {}); } catch {}
+  window.addEventListener('pagehide', () => lifecycle.abort(), { once: true });
+}
+
+})();
+
+</script>
+</body>
+</html>
