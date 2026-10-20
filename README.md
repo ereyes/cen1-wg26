@@ -10,6 +10,9 @@ s03 - https://ereyes.github.io/cen1-wg26/s03-dbdiagram.html
 
 s04 - https://ereyes.github.io/cen1-wg26/s04-rawgraphs.html  
 
+s05 - https://ereyes.github.io/cen1-wg26/s05-texte-graphique.html 
+s05 - https://ereyes.github.io/cen1-wg26/s05-pluie-texte.html (généré avec Gemini)
+
 
 Master CEN, Univ. Paris 8
 
