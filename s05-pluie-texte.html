@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Text Rain Effect Generator</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #090d16;
+      color: #e2e8f0;
+      overflow: hidden;
+    }
+
+    .font-mono-custom {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Custom Glassmorphism UI */
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    }
+
+    .glass-input {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #f8fafc;
+      transition: all 0.2s ease;
+    }
+
+    .glass-input:focus {
+      background: rgba(30, 41, 59, 0.9);
+      border-color: #6366f1;
+      outline: none;
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+    }
+
+    /* Custom Scrollbar for Textarea */
+    textarea::-webkit-scrollbar {
+      width: 6px;
+    }
+    textarea::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.5);
+    }
+    textarea::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+    }
+    textarea::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    /* Range slider custom styling */
+    input[type=range] {
+      accent-color: #6366f1;
+    }
+
+    /* Smooth sidebar sliding transition */
+    #controlPanel {
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    }
+
+    .panel-hidden {
+      transform: translateX(-105%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Canvas full screen background */
+    #rainCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* UI overlay on top of canvas */
+    .ui-layer {
+      position: relative;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden select-none">
+
+  <!-- Fullscreen Animation Canvas -->
+  <canvas id="rainCanvas"></canvas>
+
+  <!-- Main Interface Overlay -->
+  <div class="ui-layer h-full w-full pointer-events-none p-4 md:p-6 flex justify-between items-start">
+    
+    <!-- Left Side Floating Control Panel -->
+    <div id="controlPanel" class="pointer-events-auto glass-panel w-full max-w-md rounded-2xl p-5 md:p-6 flex flex-col gap-5 max-h-[calc(100vh-3rem)] overflow-y-auto">
+      
+      <!-- Panel Header -->
+      <div class="flex justify-between items-center pb-3 border-b border-slate-700/50">
+        <div class="flex items-center gap-2.5">
+          <div class="p-2 bg-indigo-600/20 text-indigo-400 rounded-lg">
+            <i data-lucide="cloud-rain" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h1 class="text-lg font-bold tracking-wide text-white">Text Rain Generator</h1>
+            <p class="text-xs text-slate-400">Transform your text into dynamic digital rain</p>
+          </div>
+        </div>
+        <button id="closePanelBtn" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/60 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Text Input Area -->
+      <div class="flex flex-col gap-2">
+        <label for="textInput" class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex justify-between">
+          <span>Source Text</span>
+          <span id="charCount" class="text-slate-500 font-mono">0 chars</span>
+        </label>
+        <textarea id="textInput" rows="4" 
+          placeholder="Paste or type your text here... (e.g. Wake up Neo... The Matrix has you. Follow the white rabbit.)" 
+          class="glass-input w-full rounded-xl p-3 text-sm font-mono-custom resize-none focus:ring-1 focus:ring-indigo-500"></textarea>
+      </div>
+
+      <!-- Action Buttons Row -->
+      <div class="grid grid-cols-2 gap-3">
+        <button id="goBtn" class="col-span-2 py-3 px-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/25 active:scale-[0.98] transition flex items-center justify-center gap-2">
+          <i data-lucide="play" class="w-5 h-5 fill-current"></i>
+          <span>START RAIN (GO)</span>
+        </button>
+
+        <button id="pauseBtn" class="py-2.5 px-3 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 font-semibold rounded-xl border border-slate-700 transition flex items-center justify-center gap-2">
+          <i id="pauseIcon" data-lucide="pause" class="w-4 h-4"></i>
+          <span id="pauseText">Pause</span>
+        </button>
+
+        <button id="resetBtn" class="py-2.5 px-3 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 font-semibold rounded-xl border border-slate-700 transition flex items-center justify-center gap-2">
+          <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+          <span>Reset</span>
+        </button>
+      </div>
+
+      <!-- Customization Settings -->
+      <div class="space-y-4 pt-2 border-t border-slate-700/50">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400">Animation Controls</h2>
+
+        <!-- Mode Toggle (Characters vs Words) -->
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-medium text-slate-300">Rain Mode</label>
+          <div class="grid grid-cols-2 gap-2 p-1 bg-slate-900/60 rounded-xl border border-slate-800">
+            <button id="modeChar" class="py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white transition">
+              Characters
+            </button>
+            <button id="modeWord" class="py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition">
+              Words
+            </button>
+          </div>
+        </div>
+
+        <!-- Color Palette Picker -->
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-medium text-slate-300">Color Preset</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button data-theme="matrix" class="theme-btn py-1.5 px-2 text-xs font-medium rounded-lg border border-emerald-500/30 bg-emerald-950/40 text-emerald-400 hover:border-emerald-400 flex items-center gap-2 transition">
+              <span class="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]"></span> Matrix
+            </button>
+            <button data-theme="cyberpunk" class="theme-btn py-1.5 px-2 text-xs font-medium rounded-lg border border-cyan-500/30 bg-cyan-950/40 text-cyan-300 hover:border-cyan-400 flex items-center gap-2 transition">
+              <span class="w-3 h-3 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]"></span> Cyberpunk
+            </button>
+            <button data-theme="rainbow" class="theme-btn py-1.5 px-2 text-xs font-medium rounded-lg border border-purple-500/30 bg-purple-950/40 text-purple-300 hover:border-purple-400 flex items-center gap-2 transition">
+              <span class="w-3 h-3 rounded-full bg-gradient-to-r from-pink-500 to-yellow-500"></span> Rainbow
+            </button>
+            <button data-theme="fire" class="theme-btn py-1.5 px-2 text-xs font-medium rounded-lg border border-orange-500/30 bg-orange-950/40 text-amber-300 hover:border-orange-400 flex items-center gap-2 transition">
+              <span class="w-3 h-3 rounded-full bg-orange-500 shadow-[0_0_8px_#f97316]"></span> Fire Glow
+            </button>
+          </div>
+        </div>
+
+        <!-- Speed Slider -->
+        <div class="flex flex-col gap-1">
+          <div class="flex justify-between text-xs">
+            <span class="font-medium text-slate-300">Fall Speed</span>
+            <span id="speedVal" class="text-slate-400 font-mono">1.0x</span>
+          </div>
+          <input id="speedSlider" type="range" min="0.2" max="3" step="0.1" value="1.0" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+        </div>
+
+        <!-- Density / Column Count Slider -->
+        <div class="flex flex-col gap-1">
+          <div class="flex justify-between text-xs">
+            <span class="font-medium text-slate-300">Stream Density</span>
+            <span id="densityVal" class="text-slate-400 font-mono">Medium</span>
+          </div>
+          <input id="densitySlider" type="range" min="0.5" max="2" step="0.25" value="1" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+        </div>
+
+        <!-- Font Size Slider -->
+        <div class="flex flex-col gap-1">
+          <div class="flex justify-between text-xs">
+            <span class="font-medium text-slate-300">Font Size</span>
+            <span id="fontVal" class="text-slate-400 font-mono">18px</span>
+          </div>
+          <input id="fontSlider" type="range" min="10" max="36" step="2" value="18" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+        </div>
+
+        <!-- Trail Length / Fade Effect -->
+        <div class="flex flex-col gap-1">
+          <div class="flex justify-between text-xs">
+            <span class="font-medium text-slate-300">Trail Glow / Persistence</span>
+            <span id="trailVal" class="text-slate-400 font-mono">Normal</span>
+          </div>
+          <input id="trailSlider" type="range" min="0.03" max="0.3" step="0.02" value="0.1" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Toggle Sidebar Open Button (When Panel is Hidden/Minimized) -->
+    <button id="openPanelBtn" class="pointer-events-auto glass-panel p-3 rounded-2xl text-slate-200 hover:text-white hover:bg-slate-800/80 transition shadow-xl hidden flex items-center gap-2">
+      <i data-lucide="sliders" class="w-5 h-5 text-indigo-400"></i>
+      <span class="text-xs font-semibold">Controls</span>
+    </button>
+
+    <!-- Top Right Quick Info Badge -->
+    <div id="statusBadge" class="pointer-events-auto glass-panel py-2 px-3.5 rounded-full flex items-center gap-2 text-xs text-slate-300">
+      <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+      <span id="statusText">Ready</span>
+    </div>
+
+  </div>
+
+  <script>
+    // Initialize Lucide icons
+    lucide.createIcons();
+
+    // DOM Elements
+    const canvas = document.getElementById('rainCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    const textInput = document.getElementById('textInput');
+    const charCount = document.getElementById('charCount');
+    const goBtn = document.getElementById('goBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const pauseIcon = document.getElementById('pauseIcon');
+    const pauseText = document.getElementById('pauseText');
+    const resetBtn = document.getElementById('resetBtn');
+    
+    const modeCharBtn = document.getElementById('modeChar');
+    const modeWordBtn = document.getElementById('modeWord');
+    
+    const speedSlider = document.getElementById('speedSlider');
+    const speedVal = document.getElementById('speedVal');
+    const densitySlider = document.getElementById('densitySlider');
+    const densityVal = document.getElementById('densityVal');
+    const fontSlider = document.getElementById('fontSlider');
+    const fontVal = document.getElementById('fontVal');
+    const trailSlider = document.getElementById('trailSlider');
+    const trailVal = document.getElementById('trailVal');
+
+    const controlPanel = document.getElementById('controlPanel');
+    const closePanelBtn = document.getElementById('closePanelBtn');
+    const openPanelBtn = document.getElementById('openPanelBtn');
+    const statusText = document.getElementById('statusText');
+
+    // Default Fallback Text
+    const defaultText = "01101001 01101110 01110011 01110000 01101001 01110010 01100101 Matrix digital rain effect powered by HTML5 Canvas and JavaScript. Custom particle text simulation engine.";
+
+    // Simulation State
+    let isRunning = false;
+    let isPaused = false;
+    let animationFrameId = null;
+    let columns = [];
+    let processedTokens = [];
+    
+    // Config Object
+    const config = {
+      mode: 'char', // 'char' or 'word'
+      fontSize: 18,
+      speedMultiplier: 1.0,
+      densityMultiplier: 1.0,
+      fadeAlpha: 0.1, // Trail length control (lower = longer trail)
+      theme: 'matrix'
+    };
+
+    // Color Palette Presets
+    const colorThemes = {
+      matrix: {
+        lead: '#ffffff',
+        body: '#10b981',
+        fade: '#064e3b',
+        glow: 'rgba(16, 185, 129, 0.8)'
+      },
+      cyberpunk: {
+        lead: '#f472b6',
+        body: '#22d3ee',
+        fade: '#155e75',
+        glow: 'rgba(34, 211, 238, 0.8)'
+      },
+      rainbow: {
+        lead: '#ffffff',
+        body: 'rainbow', // dynamic color calculation
+        fade: '#312e81',
+        glow: 'rgba(168, 85, 247, 0.8)'
+      },
+      fire: {
+        lead: '#fef08a',
+        body: '#f97316',
+        fade: '#7c2d12',
+        glow: 'rgba(249, 115, 22, 0.8)'
+      }
+    };
+
+    // Responsive Canvas Resize
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      if (isRunning) {
+        initRain();
+      }
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Input character counter listener
+    textInput.addEventListener('input', () => {
+      charCount.textContent = `${textInput.value.length} chars`;
+    });
+
+    // Toggle Control Panel Visibility
+    closePanelBtn.addEventListener('click', () => {
+      controlPanel.classList.add('panel-hidden');
+      openPanelBtn.classList.remove('hidden');
+    });
+
+    openPanelBtn.addEventListener('click', () => {
+      controlPanel.classList.remove('panel-hidden');
+      openPanelBtn.classList.add('hidden');
+    });
+
+    // Mode Selector (Char vs Word)
+    modeCharBtn.addEventListener('click', () => {
+      config.mode = 'char';
+      modeCharBtn.className = "py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white transition";
+      modeWordBtn.className = "py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition";
+      if (isRunning) initRain();
+    });
+
+    modeWordBtn.addEventListener('click', () => {
+      config.mode = 'word';
+      modeWordBtn.className = "py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white transition";
+      modeCharBtn.className = "py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition";
+      if (isRunning) initRain();
+    });
+
+    // Theme Selector Buttons
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const theme = e.currentTarget.getAttribute('data-theme');
+        if (theme && colorThemes[theme]) {
+          config.theme = theme;
+        }
+      });
+    });
+
+    // Slider Controls Listeners
+    speedSlider.addEventListener('input', (e) => {
+      config.speedMultiplier = parseFloat(e.target.value);
+      speedVal.textContent = `${config.speedMultiplier.toFixed(1)}x`;
+    });
+
+    densitySlider.addEventListener('input', (e) => {
+      config.densityMultiplier = parseFloat(e.target.value);
+      const densityMap = { '0.5': 'Low', '0.75': 'Medium-Low', '1': 'Medium', '1.25': 'High', '1.5': 'Dense', '1.75': 'Ultra', '2': 'Max' };
+      densityVal.textContent = densityMap[e.target.value] || `${config.densityMultiplier}x`;
+      if (isRunning) initRain();
+    });
+
+    fontSlider.addEventListener('input', (e) => {
+      config.fontSize = parseInt(e.target.value, 10);
+      fontVal.textContent = `${config.fontSize}px`;
+      if (isRunning) initRain();
+    });
+
+    trailSlider.addEventListener('input', (e) => {
+      config.fadeAlpha = parseFloat(e.target.value);
+      if (config.fadeAlpha < 0.08) trailVal.textContent = 'Long';
+      else if (config.fadeAlpha < 0.18) trailVal.textContent = 'Normal';
+      else trailVal.textContent = 'Short';
+    });
+
+    // Text Parser
+    function getTokens() {
+      const rawText = textInput.value.trim() || defaultText;
+      if (config.mode === 'char') {
+        // Remove extra spaces if desired, or keep characters intact
+        return rawText.replace(/\s+/g, ' ').split('');
+      } else {
+        // Split by words
+        return rawText.split(/\s+/).filter(w => w.length > 0);
+      }
+    }
+
+    // Column Particle Model
+    class RainColumn {
+      constructor(x, colIndex) {
+        this.x = x;
+        this.colIndex = colIndex;
+        this.reset();
+      }
+
+      reset() {
+        this.y = Math.random() * -canvas.height;
+        this.speed = (Math.random() * 2 + 2) * (config.fontSize / 16);
+        this.tokenOffset = Math.floor(Math.random() * processedTokens.length);
+        this.length = Math.floor(Math.random() * 15) + 10; // Trail length in tokens
+      }
+
+      update() {
+        this.y += this.speed * config.speedMultiplier;
+        
+        // Reset when the entire trail moves past the bottom canvas boundary
+        if (this.y - (this.length * config.fontSize) > canvas.height) {
+          this.reset();
+        }
+      }
+
+      draw() {
+        if (processedTokens.length === 0) return;
+
+        const currentTheme = colorThemes[config.theme];
+        ctx.font = `${config.fontSize}px 'JetBrains Mono', monospace`;
+
+        for (let i = 0; i < this.length; i++) {
+          const charY = this.y - (i * config.fontSize * (config.mode === 'word' ? 1.4 : 1.1));
+
+          // Skip drawing if outside screen vertically
+          if (charY < -config.fontSize || charY > canvas.height + config.fontSize) {
+            continue;
+          }
+
+          const tokenIndex = (this.tokenOffset + i) % processedTokens.length;
+          const token = processedTokens[tokenIndex];
+
+          // Determine color based on position in string stream
+          if (i === 0) {
+            // Head token (bright lead character/word)
+            ctx.fillStyle = currentTheme.lead;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = currentTheme.glow;
+          } else {
+            ctx.shadowBlur = 0;
+            if (config.theme === 'rainbow') {
+              // Dynamic rainbow gradient based on coordinates
+              const hue = (this.x + charY * 0.5) % 360;
+              const alpha = 1 - (i / this.length);
+              ctx.fillStyle = `hsla(${hue}, 85%, 60%, ${alpha})`;
+            } else {
+              // Fade color opacity along the trail
+              const alpha = Math.max(0.1, 1 - (i / this.length));
+              ctx.fillStyle = i < 3 ? currentTheme.body : currentTheme.fade;
+              ctx.globalAlpha = alpha;
+            }
+          }
+
+          ctx.fillText(token, this.x, charY);
+          ctx.globalAlpha = 1.0;
+          ctx.shadowBlur = 0; // Reset glow for performance
+        }
+      }
+    }
+
+    // Initialize Rain Animation Engine
+    function initRain() {
+      processedTokens = getTokens();
+      if (processedTokens.length === 0) return;
+
+      // Calculate column width dynamically based on font size and mode
+      let columnWidth = config.fontSize * 1.2;
+      if (config.mode === 'word') {
+        // Average word width estimate
+        columnWidth = config.fontSize * 4.5;
+      }
+
+      // Density calculation
+      const numColumns = Math.floor((canvas.width / columnWidth) * config.densityMultiplier);
+      const actualSpacing = canvas.width / Math.max(1, numColumns);
+
+      columns = [];
+      for (let i = 0; i < numColumns; i++) {
+        const x = i * actualSpacing + (actualSpacing / 4);
+        columns.push(new RainColumn(x, i));
+      }
+
+      // Clear Canvas fully on start
+      ctx.fillStyle = '#090d16';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Animation Render Loop
+    function animate() {
+      if (!isPaused && isRunning) {
+        // Semi-transparent background overlay creates the matrix trail fading effect
+        ctx.fillStyle = `rgba(9, 13, 22, ${config.fadeAlpha})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Update & Render each rain column
+        for (let i = 0; i < columns.length; i++) {
+          columns[i].update();
+          columns[i].draw();
+        }
+      }
+
+      animationFrameId = requestAnimationFrame(animate);
+    }
+
+    // Controls Logic
+    function startRain() {
+      if (!isRunning) {
+        isRunning = true;
+        isPaused = false;
+        initRain();
+        animate();
+      } else {
+        // Re-initialize with new text/settings
+        initRain();
+      }
+
+      statusText.textContent = "Raining";
+      updatePauseUI();
+    }
+
+    function togglePause() {
+      if (!isRunning) return;
+      isPaused = !isPaused;
+      statusText.textContent = isPaused ? "Paused" : "Raining";
+      updatePauseUI();
+    }
+
+    function updatePauseUI() {
+      if (isPaused) {
+        pauseIcon.setAttribute('data-lucide', 'play');
+        pauseText.textContent = 'Resume';
+      } else {
+        pauseIcon.setAttribute('data-lucide', 'pause');
+        pauseText.textContent = 'Pause';
+      }
+      lucide.createIcons();
+    }
+
+    function resetRain() {
+      isRunning = false;
+      isPaused = false;
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+      ctx.fillStyle = '#090d16';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      statusText.textContent = "Ready";
+      updatePauseUI();
+    }
+
+    // Event Listeners for Control Actions
+    goBtn.addEventListener('click', startRain);
+    pauseBtn.addEventListener('click', togglePause);
+    resetBtn.addEventListener('click', resetRain);
+
+    // Initial Start on page load with default text
+    window.onload = () => {
+      startRain();
+    };
+
+  </script>
+</body>
+</html>
