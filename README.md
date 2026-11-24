@@ -14,6 +14,8 @@ s05 - https://ereyes.github.io/cen1-wg26/s05-texte-graphique.html
 s05 - https://ereyes.github.io/cen1-wg26/s05-pluie-texte.html (généré avec Gemini)  
 
 s09 - https://ereyes.github.io/cen1-wg26/s09/index.html (généré avec Codex) 
+s09 - https://ereyes.github.io/cen1-wg26/s09/visualisation_physique_spotify_top_50.html 
+
 
 
 Master CEN, Univ. Paris 8
