@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/vega@6.4.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-lite@6.5.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-embed@7.3.0"></script>
+</head>
+<body>
+  <div id="vis"/>
+  <script>
+    const spec = {
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+  "description": "A scatterplot showing duration and popularity of Spotify tracks.",
+  "data": {
+    "url": "https://raw.githubusercontent.com/ereyes/cen1-wg26/refs/heads/main/s09/s09-spotify-mini.json"
+  },
+  "mark": "point",
+  "encoding": {
+    "x": {
+      "field": "duration_ms",
+      "type": "quantitative",
+      "scale": {"zero": false}
+    },
+    "y": {
+      "field": "popularity",
+      "type": "quantitative",
+      "scale": {"zero": false}
+    },
+    "color": {"field": "artist", "type": "nominal"},
+    "shape": {"field": "album_type", "type": "nominal"},
+    "tooltip": [
+      {"field": "artist", "type": "nominal", "title": "Artiste"},
+      {"field": "song", "type": "nominal", "title": "Morceau"}
+    ]
+  },
+  "config": {}
+};
+    vegaEmbed("#vis", spec, {mode: "vega-lite"}).then(console.log).catch(console.warn);
+  </script>
+</body>
+</html>
