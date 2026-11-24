@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Survolez les lignes du canvas pour faire apparaître une onde sinusoïdale.">
+  <title>Lignes — Canvas</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+  <script src="canvas.js" defer></script>
+</head>
+<body data-medium="canvas">
+  <canvas class="stage" id="drawing" role="img" aria-label="Lignes espacées de 20 pixels. Le pointeur fait onduler les lignes voisines selon un sinus." aria-describedby="instructions">Votre navigateur doit prendre en charge canvas pour afficher les lignes.</canvas>
+  <header class="masthead">
+    <div class="wordmark">LIGNES<span>20 px · trois supports</span></div>
+    <nav aria-label="Choisir un support graphique">
+      <a href="index.html">HTML</a><a href="svg.html">SVG</a><a href="canvas.html" aria-current="page">Canvas</a>
+    </nav>
+  </header>
+  <main class="caption">
+    <p class="eyebrow">Pixels en mouvement</p>
+    <h1>Canvas.</h1>
+    <p class="description">Approchez le pointeur.<br>Le tracé se transforme en onde sinusoïdale.</p>
+    <code class="code">y = y₀ + A × sin(kx − ωt)</code>
+  </main>
+  <aside class="gesture" id="instructions">
+    <p><strong>Survolez les lignes pour les animer.</strong><br>Sur écran tactile : touchez et glissez.<br>L’onde s’atténue quand vous sortez.</p>
+    <button type="button" id="motion" aria-pressed="false">Figer l’animation</button>
+    <p class="visually-hidden" id="motion-note" aria-live="polite"></p>
+  </aside>
+</body>
+</html>

@@ -1,0 +1,74 @@
+:root {
+  color-scheme: light;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #192229;
+  background: #f5f7f9;
+  --accent: #d84428;
+  --line: #a2adb7;
+  --paper: #f5f7f9;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+body[data-medium="svg"] { --accent: #3455d5; }
+body[data-medium="canvas"] { --accent: #087856; }
+a { color: inherit; }
+button { font: inherit; }
+.stage { position: fixed; inset: 0; overflow: hidden; }
+.masthead {
+  position: fixed; z-index: 2; top: 24px; left: 24px; right: 24px;
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 16px; pointer-events: none;
+}
+.wordmark { background: var(--paper); padding: 12px 16px; font-size: 16px; font-weight: 800; letter-spacing: .12em; }
+.wordmark span { color: #626e77; font-weight: 400; letter-spacing: 0; margin-left: 12px; }
+nav { display: flex; background: var(--paper); border: 1px solid #c8d0d6; padding: 4px; gap: 4px; pointer-events: auto; }
+nav a { text-decoration: none; padding: 10px 18px; font-size: 16px; font-weight: 650; }
+nav a:hover { background: #e3e9ee; }
+nav a[aria-current="page"] { background: #192229; color: white; }
+a:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+.caption {
+  position: fixed; z-index: 2; left: 24px; bottom: 24px;
+  width: min(390px, calc(100% - 48px)); background: var(--paper); padding: 22px 24px 24px;
+  border-left: 4px solid var(--accent); pointer-events: none;
+}
+.eyebrow { color: var(--accent); text-transform: uppercase; letter-spacing: .14em; font-size: 13px; font-weight: 750; margin: 0 0 10px; }
+h1 { margin: 0 0 12px; font-size: clamp(48px, 6vw, 72px); line-height: 1; letter-spacing: -.065em; font-weight: 750; }
+.description { margin: 0; font-size: 16px; line-height: 1.55; max-width: 32ch; }
+.code { display: block; margin-top: 18px; color: #626e77; font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; font-size: 14px; line-height: 1.5; }
+.gesture { position: fixed; z-index: 2; right: 24px; bottom: 24px; background: var(--paper); padding: 14px 16px; max-width: 340px; font-size: 14px; line-height: 1.5; }
+.gesture p { margin: 0; }
+.gesture strong { font-weight: 650; }
+.gesture button { display: block; margin-top: 10px; padding: 8px 12px; background: transparent; border: 1px solid #a2adb7; color: inherit; cursor: pointer; }
+.gesture button:hover { border-color: var(--accent); color: var(--accent); }
+.html-lines { padding-top: 20px; }
+.html-lines hr { display: block; margin: 0; padding: 0; width: 100%; height: 20px; border: 0; color: var(--line); cursor: crosshair; }
+/* Le trait fait 1 px ; la zone qui réagit au survol fait 20 px. */
+.html-lines hr::before { content: ""; display: block; width: 100%; height: 1px; background: currentColor; }
+.html-lines hr:hover { color: var(--accent); }
+.html-lines hr:hover::before { box-shadow: 0 1px 0 currentColor; }
+svg.stage { width: 100%; height: 100%; touch-action: none; }
+.svg-line { cursor: ns-resize; outline: none; }
+.svg-line .ink { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.svg-line .hit { stroke: transparent; stroke-width: 20; pointer-events: stroke; }
+.svg-line:hover .ink, .svg-line:focus .ink, .svg-line.is-dragging .ink { stroke: var(--accent); stroke-width: 2; }
+.svg-line:focus-visible .ink { stroke-width: 3; stroke-dasharray: 8 4; }
+.svg-line.is-dragging { cursor: grabbing; }
+canvas.stage { width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+@media (max-width: 680px) {
+  .masthead { top: 12px; left: 12px; right: 12px; flex-wrap: wrap; gap: 8px; }
+  .wordmark { font-size: 14px; padding: 10px 12px; }
+  .wordmark span { margin-left: 8px; }
+  nav { margin-left: auto; }
+  nav a { padding: 8px 12px; font-size: 14px; }
+  .caption { left: 12px; bottom: 12px; width: min(330px, calc(100% - 24px)); padding: 16px 18px; }
+  h1 { font-size: 48px; margin-bottom: 8px; }
+  .code { margin-top: 12px; }
+  .gesture { bottom: auto; top: 120px; right: 12px; padding: 10px 12px; max-width: 265px; }
+}
+@media (max-height: 500px) {
+  .caption { padding: 12px 18px; }
+  .caption h1 { font-size: 38px; }
+  .code { display: none; }
+  .gesture { max-width: 250px; top: auto; bottom: 12px; }
+}

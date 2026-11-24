@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Déplacez des lignes SVG, initialement espacées de 20 pixels.">
+  <title>Lignes — SVG</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+  <script src="svg.js" defer></script>
+</head>
+<body data-medium="svg">
+  <svg class="stage" id="drawing" aria-label="Lignes SVG déplaçables" aria-describedby="instructions"></svg>
+  <header class="masthead">
+    <div class="wordmark">LIGNES<span>20 px · trois supports</span></div>
+    <nav aria-label="Choisir un support graphique">
+      <a href="index.html">HTML</a><a href="svg.html" aria-current="page">SVG</a><a href="canvas.html">Canvas</a>
+    </nav>
+  </header>
+  <main class="caption">
+    <p class="eyebrow">Objets vectoriels</p>
+    <h1>SVG.</h1>
+    <p class="description">Saisissez un trait. Déplacez-le.<br>Chaque ligne est un objet indépendant.</p>
+    <code class="code">&lt;line x1="0" y1="20" … /&gt;</code>
+  </main>
+  <aside class="gesture" id="instructions">
+    <p><strong>Glissez une ligne verticalement.</strong><br>Au clavier : Tab, puis ↑ ou ↓.<br>Maj + ↑ / ↓ : déplacement de 20 px.</p>
+    <button type="button" id="reset">Remettre les lignes à zéro</button>
+  </aside>
+  <p class="visually-hidden" id="status" aria-live="polite"></p>
+</body>
+</html>
