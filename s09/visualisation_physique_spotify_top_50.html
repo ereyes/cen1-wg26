@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Spotify Top 50 — Bulles Physiques Interactives</title>
+  <!-- Tailwind CSS pour l'interface utilisateur et la modale -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Matter.js pour le moteur physique 2D haute précision -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <!-- Police Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #090b10;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #f8fafc;
+      touch-action: none;
+    }
+
+    /* Fond subtil façon studio audio / Spotify */
+    #bg-gradient {
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 18% 20%, rgba(29, 185, 84, 0.08) 0%, transparent 45%),
+        radial-gradient(circle at 82% 78%, rgba(99, 102, 241, 0.09) 0%, transparent 50%),
+        linear-gradient(180deg, #0b0e14 0%, #07090d 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    canvas#physics-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      z-index: 1;
+    }
+
+    /* Animation douce de la popup */
+    @keyframes modalPop {
+      0% {
+        opacity: 0;
+        transform: scale(0.92) translateY(12px);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    .modal-animate {
+      animation: modalPop 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  </style>
+</head>
+<body>
+  <!-- Arrière-plan dégradé -->
+  <div id="bg-gradient"></div>
+
+  <!-- Canvas de simulation Matter.js -->
+  <canvas id="physics-canvas"></canvas>
+
+  <!-- En-tête flottant (Titre + Légende rapide en haut à gauche) -->
+  <header class="fixed top-4 left-4 sm:top-6 sm:left-6 z-10 pointer-events-none max-w-[58vw] sm:max-w-md">
+    <div class="inline-flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-slate-900/75 backdrop-blur-md border border-white/10 shadow-xl">
+      <span class="w-2.5 h-2.5 rounded-full bg-[#1DB954] animate-pulse shrink-0"></span>
+      <div>
+        <h1 class="text-xs sm:text-sm font-bold tracking-tight text-white leading-tight">
+          Spotify Top 50 — Studio Physique
+        </h1>
+        <p class="text-[11px] text-slate-400 hidden sm:block mt-0.5">
+          Taille = durée • Couleur = artiste • Glissez ou cliquez sur un rond
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Barre de contrôle flottante en haut à droite -->
+  <nav aria-label="Contrôles de physique" class="fixed top-4 right-4 sm:top-6 sm:right-6 z-20 flex items-center gap-2.5">
+    <!-- Bouton Gravité -->
+    <button
+      id="btn-gravity"
+      type="button"
+      class="group relative inline-flex items-center gap-2 px-4 py-2.5 sm:px-5 sm:py-3 rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 bg-slate-900/85 hover:bg-slate-800/95 text-slate-100 border border-white/15 shadow-lg shadow-black/40 backdrop-blur-md active:scale-95 cursor-pointer"
+      title="Faire tomber et empiler tous les ronds vers le bas"
+    >
+      <svg id="icon-gravity" class="w-4 h-4 text-amber-400 transition-transform duration-300 group-hover:translate-y-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+      </svg>
+      <span id="label-gravity">Gravité</span>
+    </button>
+
+    <!-- Bouton Exploser -->
+    <button
+      id="btn-explode"
+      type="button"
+      class="group relative inline-flex items-center gap-2 px-4 py-2.5 sm:px-5 sm:py-3 rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 shadow-lg shadow-emerald-500/25 active:scale-95 cursor-pointer"
+      title="Éjecter les ronds vers les bords en apesanteur"
+    >
+      <svg class="w-4 h-4 text-slate-950 transition-transform duration-300 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.3">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+      <span>Exploser</span>
+    </button>
+  </nav>
+
+  <!-- Indicateur d'état en bas à gauche (discret) -->
+  <div class="fixed bottom-4 left-4 sm:bottom-5 sm:left-6 z-10 pointer-events-none">
+    <div id="status-pill" class="px-3 py-1.5 rounded-xl bg-slate-900/65 backdrop-blur-md border border-white/10 text-[11px] text-slate-300 flex items-center gap-2">
+      <span id="status-dot" class="w-2 h-2 rounded-full bg-sky-400"></span>
+      <span id="status-text">Mode apesanteur • Rebond libre</span>
+    </div>
+  </div>
+
+  <!-- Popup / Modale d'information sur un morceau -->
+  <div
+    id="track-modal"
+    class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/65 backdrop-blur-sm"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modal-song-title"
+  >
+    <div
+      id="track-modal-card"
+      class="modal-animate relative w-full max-w-sm rounded-3xl bg-slate-900/95 border border-white/15 p-5 sm:p-6 shadow-2xl shadow-black/80 text-slate-100"
+    >
+      <!-- Bouton Fermer -->
+      <button
+        id="modal-close-btn"
+        type="button"
+        aria-label="Fermer la fenêtre"
+        class="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-slate-200 flex items-center justify-center transition-colors cursor-pointer"
+      >
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <!-- Badge Position & Couleur Artiste -->
+      <div class="flex items-center gap-2 mb-4">
+        <span id="modal-rank" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/10 text-white">
+          #1
+        </span>
+        <span id="modal-artist-badge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/5 border border-white/10">
+          <span id="modal-color-dot" class="w-2.5 h-2.5 rounded-full"></span>
+          <span id="modal-album-type" class="capitalize text-slate-300">Single</span>
+        </span>
+      </div>
+
+      <!-- Pochette + Infos principales -->
+      <div class="flex items-center gap-4">
+        <div class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-slate-800 shrink-0 shadow-lg border border-white/10">
+          <img
+            id="modal-cover"
+            src="https://placehold.co/200x200/1e293b/94a3b8?text=Spotify"
+            alt="Pochette de l'album"
+            class="w-full h-full object-cover"
+            onerror="this.onerror=null;this.src='https://placehold.co/200x200/1e293b/94a3b8?text=Audio';"
+          />
+        </div>
+
+        <div class="min-w-0 flex-1">
+          <h2 id="modal-song-title" class="text-base sm:text-lg font-extrabold text-white leading-snug line-clamp-2">
+            Titre du morceau
+          </h2>
+          <p id="modal-artist-name" class="text-sm font-semibold text-emerald-400 mt-1 truncate">
+            Nom de l'artiste
+          </p>
+          <p id="modal-release-date" class="text-xs text-slate-400 mt-1">
+            Sortie : 2024
+          </p>
+        </div>
+      </div>
+
+      <!-- Métriques (Durée & Popularité) -->
+      <div class="grid grid-cols-2 gap-3 mt-5 pt-4 border-t border-white/10">
+        <div class="rounded-2xl bg-white/5 p-3">
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Durée</div>
+          <div id="modal-duration" class="text-base font-bold text-white mt-0.5">03:00</div>
+        </div>
+        <div class="rounded-2xl bg-white/5 p-3">
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Popularité</div>
+          <div class="flex items-center gap-2 mt-0.5">
+            <span id="modal-popularity" class="text-base font-bold text-white">80/100</span>
+            <div class="flex-1 h-1.5 rounded-full bg-slate-700 overflow-hidden">
+              <div id="modal-popularity-bar" class="h-full rounded-full bg-[#1DB954]" style="width: 80%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * ============================================================================
+     * 1. DONNÉES EMBARQUÉES DES 50 MORCEAUX SPOTIFY (s09-spotify-mini.csv)
+     * ============================================================================
+     */
+    const TRACKS_DATA = [
+      {"position":1,"song":"Ma Meilleure Ennemie (from the series Arcane League of Legends)","artist":"Stromae & Pomme & Arcane","popularity":77,"duration_ms":147973,"album_type":"single","total_tracks":1,"release_date":"2024-11-23","is_explicit":false,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b2732aab4ea84f431ad7d92fecbb"},
+      {"position":2,"song":"Alpha","artist":"Damso","popularity":73,"duration_ms":168000,"album_type":"album","total_tracks":11,"release_date":"2024-11-15","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b273b44481e4bdb7ddeca0158365"},
+      {"position":3,"song":"SOIS PAS TIMIDE","artist":"GIMS","popularity":73,"duration_ms":165978,"album_type":"album","total_tracks":7,"release_date":"2024-09-13","is_explicit":false,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b27329393fc9cf92d10b86676297"},
+      {"position":4,"song":"CARTIER SANTOS","artist":"SDM","popularity":79,"duration_ms":183813,"album_type":"album","total_tracks":14,"release_date":"2024-09-26","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b27370f8508745ea2e7fff2f510f"},
+      {"position":5,"song":"PROBATION","artist":"Gazo","popularity":72,"duration_ms":219584,"album_type":"single","total_tracks":1,"release_date":"2024-11-08","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b273369395f3c1176dc86c496b03"},
+      {"position":6,"song":"POUR ELLE","artist":"SDM","popularity":77,"duration_ms":179034,"album_type":"album","total_tracks":14,"release_date":"2024-09-26","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b27370f8508745ea2e7fff2f510f"},
+      {"position":7,"song":"Minimum ça","artist":"Dr. Yaro","popularity":75,"duration_ms":149811,"album_type":"single","total_tracks":1,"release_date":"2024-08-09","is_explicit":false,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b273d39b05d217190ce3b8dece9b"},
+      {"position":8,"song":"Ça parle mal","artist":"Bouss","popularity":76,"duration_ms":176248,"album_type":"album","total_tracks":25,"release_date":"2024-06-21","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b273a1725d8b0c1af59e2ae1ba3a"},
+      {"position":9,"song":"SPIDER","artist":"GIMS","popularity":73,"duration_ms":188818,"album_type":"album","total_tracks":7,"release_date":"2024-09-13","is_explicit":false,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b27329393fc9cf92d10b86676297"},
+      {"position":10,"song":"KONGOLESE SOUS BBL","artist":"Theodora","popularity":60,"duration_ms":164234,"album_type":"album","total_tracks":13,"release_date":"2024-11-01","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b273914a47c2fae7a4b4893eb34d"},
+      {"position":11,"song":"Sous la lune","artist":"Jul","popularity":75,"duration_ms":171000,"album_type":"album","total_tracks":25,"release_date":"2019-06-28","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b2733c505b5ddcbdf80c7dff5a1f"},
+      {"position":12,"song":"Die With A Smile","artist":"Lady Gaga & Bruno Mars","popularity":100,"duration_ms":251667,"album_type":"single","total_tracks":1,"release_date":"2024-08-16","is_explicit":false,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b27382ea2e9e1858aa012c57cd45"},
+      {"position":13,"song":"Collabo","artist":"Ninho & Niska","popularity":73,"duration_ms":174153,"album_type":"album","total_tracks":15,"release_date":"2024-10-25","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b273d30660d949dfac1116226d0f"},
+      {"position":14,"song":"APT.","artist":"ROSÉ & Bruno Mars","popularity":98,"duration_ms":169917,"album_type":"single","total_tracks":1,"release_date":"2024-10-18","is_explicit":false,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b273ba60245b7725fdc3719027c0"},
+      {"position":15,"song":"Où aller","artist":"GIMS","popularity":48,"duration_ms":236400,"album_type":"album","total_tracks":39,"release_date":"2018-03-23","is_explicit":false,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b273f2dbf3eef5b03638e6ba9db0"},
+      {"position":16,"song":"Monaco","artist":"Guy2Bezbar","popularity":75,"duration_ms":141314,"album_type":"single","total_tracks":1,"release_date":"2024-07-11","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b2732b5b2817520b75805d922f90"},
+      {"position":17,"song":"4 Kampé","artist":"Joé Dwèt Filé","popularity":74,"duration_ms":214971,"album_type":"single","total_tracks":1,"release_date":"2024-10-25","is_explicit":false,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b273813dacdd5d40ab892a2f0abc"},
+      {"position":18,"song":"Un jour, je l'aurai","artist":"Jul","popularity":67,"duration_ms":226760,"album_type":"single","total_tracks":1,"release_date":"2024-11-15","is_explicit":false,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b273edf3b8872ea84a42248c76b6"},
+      {"position":19,"song":"BIRDS OF A FEATHER","artist":"Billie Eilish","popularity":97,"duration_ms":210373,"album_type":"album","total_tracks":10,"release_date":"2024-05-17","is_explicit":false,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b27371d62ea7ea8a5be92d3c1f62"},
+      {"position":20,"song":"Passe ton chemin","artist":"Lynda","popularity":72,"duration_ms":169256,"album_type":"single","total_tracks":1,"release_date":"2024-06-14","is_explicit":false,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b273950cfdfba8816aeefbda7603"},
+      {"position":21,"song":"Malya","artist":"AMK","popularity":71,"duration_ms":192182,"album_type":"album","total_tracks":15,"release_date":"2022-05-27","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b27358617a36795bced5e940f1d7"},
+      {"position":22,"song":"I'M SORRY","artist":"La Mano 1.9","popularity":72,"duration_ms":152571,"album_type":"single","total_tracks":1,"release_date":"2024-09-25","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b2731cdb019a5ba20446d828b700"},
+      {"position":23,"song":"FLASHBACK","artist":"Favé","popularity":71,"duration_ms":176120,"album_type":"album","total_tracks":15,"release_date":"2023-10-13","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b273bed20ca2a508148c3f8cffd8"},
+      {"position":24,"song":"Recommence-moi","artist":"SANTA","popularity":72,"duration_ms":196334,"album_type":"album","total_tracks":11,"release_date":"2024-05-24","is_explicit":false,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b2738ec1d323eca7c1d48390eb9a"},
+      {"position":25,"song":"To Ashes and Blood (from the series Arcane League of Legends)","artist":"Woodkid & Arcane & League of Legends","popularity":74,"duration_ms":245626,"album_type":"single","total_tracks":1,"release_date":"2024-11-09","is_explicit":false,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b273751209b5848226d25a4f2c86"},
+      {"position":26,"song":"Bah Ouais - Nouvelle École","artist":"Dadi & JYEUHAIR & Youssef Swatt's","popularity":72,"duration_ms":201951,"album_type":"single","total_tracks":3,"release_date":"2024-07-22","is_explicit":false,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b2739fd9c32f3fc0231398c31a23"},
+      {"position":27,"song":"CRF - Nouvelle École","artist":"Various Artists","popularity":73,"duration_ms":129153,"album_type":"single","total_tracks":5,"release_date":"2024-07-05","is_explicit":false,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b27365ccfa3a7a9139ec9bcdee86"},
+      {"position":28,"song":"Boulot","artist":"KeBlack","popularity":57,"duration_ms":148186,"album_type":"album","total_tracks":18,"release_date":"2024-11-22","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b2738e03b43834c49a4f302c739a"},
+      {"position":29,"song":"Pétunias","artist":"Werenoi","popularity":63,"duration_ms":210247,"album_type":"album","total_tracks":18,"release_date":"2024-02-16","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b27315a77fc58cab8c163a1b7509"},
+      {"position":30,"song":"J’crois qu’ils ont pas compris","artist":"Leto","popularity":72,"duration_ms":130000,"album_type":"album","total_tracks":12,"release_date":"2024-07-19","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b273e5f1f76084cf6dc4dc2b865d"},
+      {"position":31,"song":"MANON B","artist":"Tiakola","popularity":68,"duration_ms":169846,"album_type":"album","total_tracks":17,"release_date":"2024-09-20","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b2732ce65e1fddfaf10dbe42b701"},
+      {"position":32,"song":"CIEL","artist":"GIMS","popularity":49,"duration_ms":186461,"album_type":"album","total_tracks":9,"release_date":"2024-11-21","is_explicit":false,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b2739265a1a942323bec65148641"},
+      {"position":33,"song":"The Emptiness Machine","artist":"Linkin Park","popularity":82,"duration_ms":190427,"album_type":"album","total_tracks":11,"release_date":"2024-11-15","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b273b11a5489e8cb11dd22b930a0"},
+      {"position":34,"song":"PONA NINI","artist":"Tiakola","popularity":71,"duration_ms":246978,"album_type":"album","total_tracks":17,"release_date":"2024-09-20","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b2732ce65e1fddfaf10dbe42b701"},
+      {"position":35,"song":"Ils se demandent","artist":"Denden","popularity":64,"duration_ms":102875,"album_type":"single","total_tracks":1,"release_date":"2024-10-28","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b273c9226b02ddf05dc15b920578"},
+      {"position":36,"song":"Alibi (with Pabllo Vittar & Yseult)","artist":"Sevdaliza & Pabllo Vittar & Yseult","popularity":85,"duration_ms":161655,"album_type":"single","total_tracks":1,"release_date":"2024-06-28","is_explicit":false,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b2734ee35e37bc21fe929a4d3605"},
+      {"position":37,"song":"Laisse-moi tranquille.","artist":"Damso","popularity":70,"duration_ms":216973,"album_type":"album","total_tracks":11,"release_date":"2024-11-15","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b273b44481e4bdb7ddeca0158365"},
+      {"position":38,"song":"luther (with sza)","artist":"Kendrick Lamar","popularity":64,"duration_ms":177598,"album_type":"album","total_tracks":12,"release_date":"2024-11-21","is_explicit":false,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b27309d6ed214f03fbb663e46531"},
+      {"position":39,"song":"Vanilla","artist":"VEN1 & Ramos.","popularity":72,"duration_ms":187810,"album_type":"single","total_tracks":1,"release_date":"2024-08-30","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b2733a44d3f574d45f256be5ef66"},
+      {"position":40,"song":"Si Antes Te Hubiera Conocido","artist":"KAROL G","popularity":93,"duration_ms":195824,"album_type":"single","total_tracks":1,"release_date":"2024-06-21","is_explicit":false,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b273491678beaffcefac517a699e"},
+      {"position":41,"song":"Hakayet","artist":"VEN1","popularity":72,"duration_ms":158208,"album_type":"single","total_tracks":1,"release_date":"2023-11-20","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b27313295a84f4cf446fab5553a9"},
+      {"position":42,"song":"Placebo","artist":"Dinos","popularity":69,"duration_ms":190253,"album_type":"album","total_tracks":24,"release_date":"2018-12-07","is_explicit":false,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b27337b1101f08f80f9aaf46ff98"},
+      {"position":43,"song":"Schéma","artist":"Damso","popularity":69,"duration_ms":187813,"album_type":"album","total_tracks":11,"release_date":"2024-11-15","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b273b44481e4bdb7ddeca0158365"},
+      {"position":44,"song":"Beautiful Things","artist":"Benson Boone","popularity":89,"duration_ms":180304,"album_type":"album","total_tracks":15,"release_date":"2024-04-05","is_explicit":false,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b273cc04ff3e70e146ba9abacf40"},
+      {"position":45,"song":"LA MELO EST DANS LA BOUNCE","artist":"Genezio","popularity":50,"duration_ms":109783,"album_type":"album","total_tracks":8,"release_date":"2024-11-19","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b2730e3df5f9567e3b260ce85759"},
+      {"position":46,"song":"Mauvais garçon","artist":"Helena","popularity":63,"duration_ms":162706,"album_type":"single","total_tracks":1,"release_date":"2024-11-20","is_explicit":false,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b2731ad45d8cc9f48fc3c2dcae5d"},
+      {"position":47,"song":"Laboratoire","artist":"Werenoi","popularity":71,"duration_ms":162840,"album_type":"album","total_tracks":18,"release_date":"2023-03-09","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b273454178915a2bb0bb78cfebaf"},
+      {"position":48,"song":"Coco","artist":"Ninho & Niska","popularity":66,"duration_ms":148656,"album_type":"album","total_tracks":15,"release_date":"2024-10-25","is_explicit":true,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b273d30660d949dfac1116226d0f"},
+      {"position":49,"song":"Nightcall","artist":"Kavinsky & Angèle & Phoenix","popularity":74,"duration_ms":179306,"album_type":"single","total_tracks":1,"release_date":"2024-09-20","is_explicit":false,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b27382e856e42426e69b8bb43461"},
+      {"position":50,"song":"Paint The Town Blue (from the series Arcane League of Legends)","artist":"Ashnikko & Arcane & League of Legends","popularity":76,"duration_ms":115533,"album_type":"single","total_tracks":1,"release_date":"2024-09-05","is_explicit":false,"album_cover_url":"https://i.scdn.co/image/ab67616d0000b273b6d68c96d0dea02ce85a558f"}
+    ];
+
+    /**
+     * ============================================================================
+     * 2. UTILITAIRES (COULEURS PAR ARTISTE, FORMATAGE, ÉCHELLE)
+     * ============================================================================
+     */
+
+    // Génère une palette HSL harmonieuse et distincte pour chaque artiste unique
+    function buildArtistColorMap(tracks) {
+      const uniqueArtists = [...new Set(tracks.map(t => t.artist))];
+      const colorMap = new Map();
+      const total = uniqueArtists.length;
+      // Utilisation de l'angle d'or pour maximiser la séparation visuelle entre artistes consécutifs
+      const goldenAngle = 137.508;
+
+      uniqueArtists.forEach((artist, index) => {
+        const hue = Math.round((index * goldenAngle) % 360);
+        // Légère variation de saturation et luminosité pour une richesse visuelle optimale
+        const saturation = 76 + (index % 3) * 6; // 76% - 88%
+        const lightness = 54 + (index % 2) * 6;  // 54% - 60%
+
+        colorMap.set(artist, {
+          fill: `hsl(${hue}, ${saturation}%, ${lightness}%)`,
+          highlight: `hsl(${hue}, ${Math.min(100, saturation + 10)}%, ${Math.min(82, lightness + 18)}%)`,
+          shadow: `hsl(${hue}, ${saturation}%, ${Math.max(22, lightness - 26)}%)`,
+          glow: `hsla(${hue}, ${saturation}%, ${lightness}%, 0.45)`
+        });
+      });
+
+      return colorMap;
+    }
+
+    // Formate une durée en millisecondes vers "mm:ss"
+    function formatDuration(ms) {
+      const totalSeconds = Math.round(ms / 1000);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    // Calcule le rayon d'un cercle en fonction de duration_ms et de la taille d'écran
+    function computeRadius(durationMs, minDur, maxDur, viewportWidth, viewportHeight) {
+      const area = viewportWidth * viewportHeight;
+      // Adaptation responsive de la plage de rayons pour éviter l'encombrement sur mobile
+      const scaleFactor = Math.max(0.62, Math.min(1.18, Math.sqrt(area / (1280 * 800))));
+      const minRadius = 17 * scaleFactor;
+      const maxRadius = 44 * scaleFactor;
+
+      const ratio = (durationMs - minDur) / Math.max(1, maxDur - minDur);
+      // Racine carrée légère pour une perception équilibrée des surfaces
+      return minRadius + Math.pow(ratio, 0.75) * (maxRadius - minRadius);
+    }
+
+    // Extrait un nom court lisible pour l'affichage dans le cercle
+    function getShortArtistLabel(artist) {
+      const primary = artist.split('&')[0].trim();
+      return primary.length > 12 ? primary.slice(0, 11) + '…' : primary;
+    }
+
+    /**
+     * ============================================================================
+     * 3. INITIALISATION DU MOTEUR PHYSIQUE MATTER.JS & DU CANVAS
+     * ============================================================================
+     */
+    window.addEventListener('DOMContentLoaded', () => {
+      try {
+        const {
+          Engine,
+          World,
+          Bodies,
+          Body,
+          Composite,
+          Events,
+          Mouse,
+          MouseConstraint,
+          Query
+        } = Matter;
+
+        const canvas = document.getElementById('physics-canvas');
+        const ctx = canvas.getContext('2d');
+
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        let dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+        // État global de la simulation
+        let isGravityActive = false;
+        let hoveredBody = null;
+        let draggedBody = null;
+
+        // Suivi de la vélocité du curseur pour accentuer l'effet de percussion/répulsion au glisser
+        let pointerPos = { x: 0, y: 0 };
+        let prevPointerPos = { x: 0, y: 0 };
+        let pointerVelocity = { x: 0, y: 0 };
+        let pointerDownPos = null;
+        let pointerDownBody = null;
+
+        // Création du moteur physique
+        const engine = Engine.create({
+          positionIterations: 10, // Haute précision pour empêcher tout chevauchement lors de l'empilement
+          velocityIterations: 8
+        });
+        engine.gravity.x = 0;
+        engine.gravity.y = 0; // Mode apesanteur initial
+
+        // Préparation des données visuelles
+        const artistColors = buildArtistColorMap(TRACKS_DATA);
+        const durations = TRACKS_DATA.map(t => t.duration_ms);
+        const minDuration = Math.min(...durations);
+        const maxDuration = Math.max(...durations);
+
+        // Murs invisibles entourant la fenêtre
+        let walls = [];
+        const WALL_THICKNESS = 120;
+
+        function createBoundaries(w, h) {
+          const wallOptions = {
+            isStatic: true,
+            restitution: 0.96,
+            friction: 0.08,
+            frictionStatic: 0.1,
+            label: 'wall'
+          };
+          return [
+            // Haut
+            Bodies.rectangle(w / 2, -WALL_THICKNESS / 2, w + WALL_THICKNESS * 2, WALL_THICKNESS, wallOptions),
+            // Bas
+            Bodies.rectangle(w / 2, h + WALL_THICKNESS / 2, w + WALL_THICKNESS * 2, WALL_THICKNESS, wallOptions),
+            // Gauche
+            Bodies.rectangle(-WALL_THICKNESS / 2, h / 2, WALL_THICKNESS, h + WALL_THICKNESS * 2, wallOptions),
+            // Droite
+            Bodies.rectangle(w + WALL_THICKNESS / 2, h / 2, WALL_THICKNESS, h + WALL_THICKNESS * 2, wallOptions)
+          ];
+        }
+
+        function resizeCanvas() {
+          width = window.innerWidth;
+          height = window.innerHeight;
+          dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+          canvas.width = Math.floor(width * dpr);
+          canvas.height = Math.floor(height * dpr);
+          canvas.style.width = `${width}px`;
+          canvas.style.height = `${height}px`;
+
+          // Recréer les murs aux nouvelles dimensions
+          if (walls.length > 0) {
+            Composite.remove(engine.world, walls);
+          }
+          walls = createBoundaries(width, height);
+          Composite.add(engine.world, walls);
+
+          // Ajuster le pixelRatio de la souris Matter.js
+          if (mouse) {
+            mouse.pixelRatio = dpr;
+          }
+        }
+
+        // Placement initial sans aucun chevauchement
+        const trackBodies = [];
+        const placedCircles = [];
+
+        TRACKS_DATA.forEach((track) => {
+          const radius = computeRadius(track.duration_ms, minDuration, maxDuration, width, height);
+          const margin = radius + 12;
+
+          let x = width / 2;
+          let y = height / 2;
+          let placed = false;
+
+          // Recherche d'une position aléatoire libre de chevauchement
+          for (let attempt = 0; attempt < 600; attempt++) {
+            const candidateX = margin + Math.random() * Math.max(20, width - margin * 2);
+            const candidateY = Math.max(margin + 56, margin) + Math.random() * Math.max(20, height - margin * 2 - 56);
+
+            let overlaps = false;
+            for (const other of placedCircles) {
+              const dx = candidateX - other.x;
+              const dy = candidateY - other.y;
+              const minDist = radius + other.r + 4;
+              if (dx * dx + dy * dy < minDist * minDist) {
+                overlaps = true;
+                break;
+              }
+            }
+
+            if (!overlaps) {
+              x = candidateX;
+              y = candidateY;
+              placed = true;
+              break;
+            }
+          }
+
+          // Repli en grille sécurisée si l'écran est très petit
+          if (!placed) {
+            const idx = placedCircles.length;
+            const cols = Math.max(4, Math.floor(width / 65));
+            const col = idx % cols;
+            const row = Math.floor(idx / cols);
+            x = margin + (col + 0.5) * ((width - margin * 2) / cols);
+            y = margin + 60 + row * 52;
+          }
+
+          placedCircles.push({ x, y, r: radius });
+
+          const body = Bodies.circle(x, y, radius, {
+            restitution: 0.96,      // Rebond quasi élastique
+            friction: 0.0,
+            frictionAir: 0.0,       // Mouvement perpétuel en apesanteur
+            frictionStatic: 0.0,
+            slop: 0.01,             // Réduit au minimum l'interpénétration lors des collisions
+            density: 0.002,
+            label: 'track-bubble'
+          });
+
+          // Attacher les métadonnées du morceau et la palette artiste au corps physique
+          body.trackData = track;
+          body.palette = artistColors.get(track.artist);
+          body.radius = radius;
+
+          // Vélocité initiale aléatoire douce
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 1.4 + Math.random() * 2.4;
+          Body.setVelocity(body, {
+            x: Math.cos(angle) * speed,
+            y: Math.sin(angle) * speed
+          });
+
+          trackBodies.push(body);
+        });
+
+        Composite.add(engine.world, trackBodies);
+
+        /**
+         * ============================================================================
+         * 4. INTERACTIONS SOURIS / TACTILE (GLISSER RÉPULSIF + CLIC MODALE)
+         * ============================================================================
+         */
+        const mouse = Mouse.create(canvas);
+        mouse.pixelRatio = dpr;
+
+        const mouseConstraint = MouseConstraint.create(engine, {
+          mouse: mouse,
+          constraint: {
+            stiffness: 0.35, // Ressort ferme pour transmettre l'énergie lors des chocs
+            damping: 0.12,
+            render: { visible: false }
+          }
+        });
+
+        Composite.add(engine.world, mouseConstraint);
+
+        // Suivi du début et fin de saisie avec MouseConstraint
+        Events.on(mouseConstraint, 'startdrag', (event) => {
+          if (event.body && event.body.label === 'track-bubble') {
+            draggedBody = event.body;
+            canvas.style.cursor = 'grabbing';
+          }
+        });
+
+        Events.on(mouseConstraint, 'enddrag', (event) => {
+          if (draggedBody) {
+            // Limiter la vitesse de relâchement pour éviter qu'un rond ne traverse les murs
+            const maxReleaseSpeed = 26;
+            const vx = Math.max(-maxReleaseSpeed, Math.min(maxReleaseSpeed, draggedBody.velocity.x));
+            const vy = Math.max(-maxReleaseSpeed, Math.min(maxReleaseSpeed, draggedBody.velocity.y));
+            Body.setVelocity(draggedBody, { x: vx, y: vy });
+            draggedBody = null;
+          }
+          canvas.style.cursor = hoveredBody ? 'pointer' : 'default';
+        });
+
+        // Renforcement de l'effet de répulsion lorsqu'un rond glissé frappe d'autres ronds
+        Events.on(engine, 'collisionStart', (event) => {
+          for (const pair of event.pairs) {
+            const { bodyA, bodyB } = pair;
+            if (bodyA.label !== 'track-bubble' || bodyB.label !== 'track-bubble') continue;
+
+            // Si l'un des deux ronds est actuellement glissé par l'utilisateur
+            const activeDragged = bodyA === draggedBody ? bodyA : (bodyB === draggedBody ? bodyB : null);
+            const targetBody = activeDragged === bodyA ? bodyB : bodyA;
+
+            if (activeDragged) {
+              const dx = targetBody.position.x - activeDragged.position.x;
+              const dy = targetBody.position.y - activeDragged.position.y;
+              const dist = Math.hypot(dx, dy) || 1;
+              const nx = dx / dist;
+              const ny = dy / dist;
+
+              // Calcul d'une impulsion de répulsion proportionnelle à la vitesse du glissement
+              const dragSpeed = Math.hypot(pointerVelocity.x, pointerVelocity.y);
+              const impulseMagnitude = Math.min(0.14, 0.025 + dragSpeed * 0.0045) * targetBody.mass;
+
+              Body.applyForce(targetBody, targetBody.position, {
+                x: nx * impulseMagnitude,
+                y: ny * impulseMagnitude
+              });
+            }
+          }
+        });
+
+        // Gestion précise du survol et de la distinction Clic (< 6px) vs Glisser-déposer
+        function getEventCoords(e) {
+          if (e.touches && e.touches.length > 0) {
+            return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+          }
+          if (e.changedTouches && e.changedTouches.length > 0) {
+            return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+          }
+          return { x: e.clientX, y: e.clientY };
+        }
+
+        function handlePointerDown(e) {
+          const coords = getEventCoords(e);
+          pointerDownPos = { x: coords.x, y: coords.y };
+          prevPointerPos = { x: coords.x, y: coords.y };
+          pointerPos = { x: coords.x, y: coords.y };
+
+          const hits = Query.point(trackBodies, coords);
+          pointerDownBody = hits.length > 0 ? hits[0] : null;
+        }
+
+        function handlePointerMove(e) {
+          const coords = getEventCoords(e);
+          pointerVelocity = {
+            x: coords.x - prevPointerPos.x,
+            y: coords.y - prevPointerPos.y
+          };
+          prevPointerPos = { x: pointerPos.x, y: pointerPos.y };
+          pointerPos = { x: coords.x, y: coords.y };
+
+          // Détection du rond survolé pour l'effet visuel et le curseur
+          const hits = Query.point(trackBodies, coords);
+          hoveredBody = hits.length > 0 ? hits[0] : null;
+
+          if (!draggedBody) {
+            canvas.style.cursor = hoveredBody ? 'pointer' : 'default';
+          }
+        }
+
+        function handlePointerUp(e) {
+          if (!pointerDownPos) return;
+          const coords = getEventCoords(e);
+          const moveDist = Math.hypot(coords.x - pointerDownPos.x, coords.y - pointerDownPos.y);
+
+          // Si le déplacement est inférieur à 6 pixels, c'est un clic intentionnel -> Ouvrir la popup
+          if (moveDist < 6) {
+            const hits = Query.point(trackBodies, coords);
+            const clickedBody = hits.length > 0 ? hits[0] : pointerDownBody;
+            if (clickedBody && clickedBody.trackData) {
+              openTrackModal(clickedBody.trackData, clickedBody.palette);
+            }
+          }
+
+          pointerDownPos = null;
+          pointerDownBody = null;
+          pointerVelocity = { x: 0, y: 0 };
+        }
+
+        canvas.addEventListener('mousedown', handlePointerDown);
+        window.addEventListener('mousemove', handlePointerMove);
+        window.addEventListener('mouseup', handlePointerUp);
+
+        canvas.addEventListener('touchstart', handlePointerDown, { passive: true });
+        window.addEventListener('touchmove', handlePointerMove, { passive: true });
+        window.addEventListener('touchend', handlePointerUp);
+
+        /**
+         * ============================================================================
+         * 5. CONTRÔLES : BOUTONS "GRAVITÉ" ET "EXPLOSER"
+         * ============================================================================
+         */
+        const btnGravity = document.getElementById('btn-gravity');
+        const labelGravity = document.getElementById('label-gravity');
+        const iconGravity = document.getElementById('icon-gravity');
+        const btnExplode = document.getElementById('btn-explode');
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+
+        function activateGravityMode() {
+          isGravityActive = true;
+          engine.gravity.y = 1.25;
+
+          // Paramètres physiques favorisant l'empilement propre sans chevauchement ni rebond infini
+          trackBodies.forEach((body) => {
+            body.restitution = 0.32;
+            body.friction = 0.18;
+            body.frictionAir = 0.012;
+            body.frictionStatic = 0.35;
+          });
+
+          walls.forEach((wall) => {
+            wall.restitution = 0.35;
+            wall.friction = 0.25;
+          });
+
+          // Mise à jour visuelle du bouton et du statut
+          btnGravity.classList.add('ring-2', 'ring-amber-400/70', 'bg-amber-500/20', 'border-amber-400/50');
+          labelGravity.textContent = 'Gravité active';
+          iconGravity.classList.add('translate-y-0.5');
+
+          statusDot.className = 'w-2 h-2 rounded-full bg-amber-400';
+          statusText.textContent = 'Gravité activée • Empilement au sol';
+        }
+
+        function triggerExplosionMode() {
+          isGravityActive = false;
+          engine.gravity.y = 0;
+
+          // Restauration de l'élasticité élevée et friction nulle pour des rebonds perpétuels
+          trackBodies.forEach((body) => {
+            body.restitution = 0.97;
+            body.friction = 0.0;
+            body.frictionAir = 0.0;
+            body.frictionStatic = 0.0;
+
+            // Calcul du vecteur d'éjection depuis le centre de la fenêtre vers les bords
+            const dx = body.position.x - width / 2;
+            const dy = body.position.y - height / 2;
+            const dist = Math.hypot(dx, dy);
+
+            let dirX, dirY;
+            if (dist < 15) {
+              const randAngle = Math.random() * Math.PI * 2;
+              dirX = Math.cos(randAngle);
+              dirY = Math.sin(randAngle);
+            } else {
+              // Légère perturbation angulaire pour dynamiser les trajectoires
+              const baseAngle = Math.atan2(dy, dx) + (Math.random() - 0.5) * 0.45;
+              dirX = Math.cos(baseAngle);
+              dirY = Math.sin(baseAngle);
+            }
+
+            // Forte vitesse d'éjection vers les bords de l'écran
+            const ejectSpeed = 14 + Math.random() * 11;
+            Body.setVelocity(body, {
+              x: dirX * ejectSpeed,
+              y: dirY * ejectSpeed
+            });
+          });
+
+          walls.forEach((wall) => {
+            wall.restitution = 0.97;
+            wall.friction = 0.0;
+          });
+
+          // Réinitialisation visuelle du bouton Gravité
+          btnGravity.classList.remove('ring-2', 'ring-amber-400/70', 'bg-amber-500/20', 'border-amber-400/50');
+          labelGravity.textContent = 'Gravité';
+          iconGravity.classList.remove('translate-y-0.5');
+
+          statusDot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-ping';
+          statusText.textContent = 'Explosion centrifuge • Rebond haute énergie';
+          setTimeout(() => {
+            if (!isGravityActive) {
+              statusDot.className = 'w-2 h-2 rounded-full bg-sky-400';
+              statusText.textContent = 'Mode apesanteur • Rebond libre';
+            }
+          }, 1800);
+        }
+
+        btnGravity.addEventListener('click', activateGravityMode);
+        btnExplode.addEventListener('click', triggerExplosionMode);
+
+        /**
+         * ============================================================================
+         * 6. MODALE / POPUP D'AFFICHAGE DU MORCEAU ET DE L'ARTISTE
+         * ============================================================================
+         */
+        const modal = document.getElementById('track-modal');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+        const modalSongTitle = document.getElementById('modal-song-title');
+        const modalArtistName = document.getElementById('modal-artist-name');
+        const modalCover = document.getElementById('modal-cover');
+        const modalDuration = document.getElementById('modal-duration');
+        const modalPopularity = document.getElementById('modal-popularity');
+        const modalPopularityBar = document.getElementById('modal-popularity-bar');
+        const modalRank = document.getElementById('modal-rank');
+        const modalAlbumType = document.getElementById('modal-album-type');
+        const modalColorDot = document.getElementById('modal-color-dot');
+        const modalReleaseDate = document.getElementById('modal-release-date');
+
+        function openTrackModal(track, palette) {
+          modalSongTitle.textContent = track.song;
+          modalArtistName.textContent = track.artist;
+          modalArtistName.style.color = palette.highlight;
+          modalCover.src = track.album_cover_url;
+          modalDuration.textContent = formatDuration(track.duration_ms);
+          modalPopularity.textContent = `${track.popularity}/100`;
+          modalPopularityBar.style.width = `${track.popularity}%`;
+          modalPopularityBar.style.backgroundColor = palette.fill;
+          modalRank.textContent = `#${track.position} Top France`;
+          modalAlbumType.textContent = track.album_type === 'single' ? 'Single' : `Album (${track.total_tracks} titres)`;
+          modalColorDot.style.backgroundColor = palette.fill;
+          modalReleaseDate.textContent = `Sortie le ${track.release_date}`;
+
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+        }
+
+        function closeTrackModal() {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+        }
+
+        modalCloseBtn.addEventListener('click', closeTrackModal);
+        modal.addEventListener('click', (e) => {
+          // Fermer si clic sur le fond sombre extérieur à la carte
+          if (e.target === modal) {
+            closeTrackModal();
+          }
+        });
+        window.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+            closeTrackModal();
+          }
+        });
+
+        /**
+         * ============================================================================
+         * 7. BOUCLE DE SIMULATION ET DE RENDU CANVAS HAUTE PERFORMANCE
+         * ============================================================================
+         */
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        let lastTime = performance.now();
+
+        // Garde-fou physique : évite que les bulles ne s'arrêtent totalement en apesanteur
+        // et limite la vitesse maximale pour empêcher toute sortie hors écran
+        Events.on(engine, 'beforeUpdate', () => {
+          const maxSpeed = 24;
+          const minFloatSpeed = 0.65;
+
+          for (const body of trackBodies) {
+            let vx = body.velocity.x;
+            let vy = body.velocity.y;
+            const speed = Math.hypot(vx, vy);
+
+            if (speed > maxSpeed) {
+              const ratio = maxSpeed / speed;
+              Body.setVelocity(body, { x: vx * ratio, y: vy * ratio });
+            } else if (!isGravityActive && speed < minFloatSpeed && body !== draggedBody) {
+              const angle = speed > 0.01 ? Math.atan2(vy, vx) : Math.random() * Math.PI * 2;
+              Body.setVelocity(body, {
+                x: Math.cos(angle) * minFloatSpeed,
+                y: Math.sin(angle) * minFloatSpeed
+              });
+            }
+          }
+        });
+
+        function renderScene() {
+          ctx.save();
+          ctx.scale(dpr, dpr);
+          ctx.clearRect(0, 0, width, height);
+
+          // Dessin de chaque bulle musicale
+          for (const body of trackBodies) {
+            const { x, y } = body.position;
+            const r = body.radius;
+            const palette = body.palette;
+            const track = body.trackData;
+            const isHovered = body === hoveredBody || body === draggedBody;
+
+            ctx.save();
+
+            // Halo lumineux au survol ou au glisser
+            if (isHovered) {
+              ctx.shadowColor = palette.glow;
+              ctx.shadowBlur = 22;
+            } else {
+              ctx.shadowColor = 'rgba(0, 0, 0, 0.42)';
+              ctx.shadowBlur = 10;
+              ctx.shadowOffsetY = 4;
+            }
+
+            // Dégradé sphérique 3D subtil pour chaque rond
+            const grad = ctx.createRadialGradient(
+              x - r * 0.32,
+              y - r * 0.32,
+              r * 0.1,
+              x,
+              y,
+              r
+            );
+            grad.addColorStop(0, palette.highlight);
+            grad.addColorStop(0.55, palette.fill);
+            grad.addColorStop(1, palette.shadow);
+
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fillStyle = grad;
+            ctx.fill();
+
+            // Contour fin lumineux
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.lineWidth = isHovered ? 2.5 : 1.1;
+            ctx.strokeStyle = isHovered ? 'rgba(255, 255, 255, 0.92)' : 'rgba(255, 255, 255, 0.22)';
+            ctx.stroke();
+
+            // Reflet vitreux supérieur
+            ctx.beginPath();
+            ctx.ellipse(x - r * 0.24, y - r * 0.32, r * 0.38, r * 0.18, -Math.PI / 5, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+            ctx.fill();
+
+            // Texte lisible à l'intérieur des ronds suffisamment grands
+            if (r >= 22) {
+              ctx.fillStyle = '#ffffff';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+
+              const fontSize = Math.max(8.5, Math.min(11.5, r * 0.31));
+              ctx.font = `700 ${fontSize}px Inter, sans-serif`;
+
+              // Ombre portée du texte pour un contraste impeccable quelle que soit la couleur
+              ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+              ctx.shadowBlur = 4;
+
+              const label = getShortArtistLabel(track.artist);
+              ctx.fillText(label, x, r >= 30 ? y - fontSize * 0.45 : y);
+
+              // Afficher le classement #pos sous le nom d'artiste sur les grands morceaux
+              if (r >= 30) {
+                ctx.font = `500 ${Math.max(8, fontSize * 0.82)}px Inter, sans-serif`;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+                ctx.fillText(`#${track.position}`, x, y + fontSize * 0.68);
+              }
+            }
+
+            ctx.restore();
+          }
+
+          ctx.restore();
+        }
+
+        function animate(now) {
+          // Pas de temps borné à 33ms (min 30 FPS) pour la stabilité de Matter.js
+          const delta = Math.min(33.33, now - lastTime);
+          lastTime = now;
+
+          Engine.update(engine, delta);
+          renderScene();
+
+          requestAnimationFrame(animate);
+        }
+
+        // Démarrage de la boucle d'animation
+        requestAnimationFrame(animate);
+      } catch (err) {
+        console.error('Erreur lors de l’initialisation de la simulation :', err);
+      }
+    });
+  </script>
+</body>
+</html>
